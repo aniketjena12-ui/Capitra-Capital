@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import DashboardLayout from "@/components/DashboardLayout";
 import Link from "next/link";
+import EquityChart from "@/components/EquityChart";
 
 function parsePnl(pnlStr: string): number {
   let clean = pnlStr.replace(/[₹\s,]/g, "");
@@ -100,28 +101,32 @@ export default async function Dashboard() {
     { label: "Trading Days",        current: tradingDaysCount, limit: 5,               unit: " days", done: tradingDaysCount >= 5 },
   ];
 
-  // Dynamic Equity Chart Bars (Last 12 trades)
-  const lastTrades = await prisma.trade.findMany({
+  // Dynamic Equity Chart (Chronological order)
+  const historicalTrades = await prisma.trade.findMany({
     where: { userId, accountId: activeAccount?.id || undefined },
     orderBy: { createdAt: "asc" },
-    take: 12,
   });
 
-  let runningBalance = initialBalance;
-  const balancePoints = [runningBalance];
-  for (const t of lastTrades) {
-    runningBalance += parsePnl(t.pnl);
-    balancePoints.push(runningBalance);
+  let cumulativeBalance = initialBalance;
+  const chartData = [
+    { 
+      name: "Start", 
+      balance: cumulativeBalance, 
+      date: activeAccount?.createdAt 
+        ? new Date(activeAccount.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+        : "Start" 
+    }
+  ];
+
+  for (let i = 0; i < historicalTrades.length; i++) {
+    const t = historicalTrades[i];
+    cumulativeBalance += parsePnl(t.pnl);
+    chartData.push({
+      name: `T${i + 1}`,
+      balance: cumulativeBalance,
+      date: t.date,
+    });
   }
-
-  const chartMax = Math.max(...balancePoints, initialBalance) * 1.01;
-  const chartMin = Math.min(...balancePoints, initialBalance) * 0.99;
-  const chartRange = chartMax - chartMin || 1;
-
-  const equityBars = balancePoints.map(b => {
-    const pct = ((b - chartMin) / chartRange) * 100;
-    return Math.max(10, Math.round(pct));
-  });
 
   // Account status from database
   const status = activeAccount?.status || "INACTIVE";
@@ -224,17 +229,7 @@ export default async function Dashboard() {
               {profitPct >= 0 ? "+" : ""}{profitPct.toFixed(1)}%
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: "4px", height: "120px" }}>
-            {equityBars.map((h, i) => (
-              <div key={i} style={{
-                flex: 1, height: `${h}%`, borderRadius: "3px 3px 0 0",
-                background: h > 75 ? "linear-gradient(to top,#16a34a,#22c55e)" : h > 55 ? "linear-gradient(to top,#1d4ed8,#3b82f6)" : "var(--bg-elevated)",
-              }} />
-            ))}
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: "0.625rem", fontSize: "0.625rem", color: "var(--text-3)" }}>
-            <span>{balancePoints.length} updates</span><span>Today</span>
-          </div>
+          <EquityChart data={chartData} initialBalance={initialBalance} />
         </div>
 
         <div className="card">
