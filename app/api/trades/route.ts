@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { checkAccountRules } from "@/lib/rulesCheck";
 
 function parsePnl(pnlStr: string): number {
   let clean = pnlStr.replace(/[₹\s,]/g, "");
@@ -24,7 +25,12 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ trades });
+    const activeAccount = await prisma.account.findFirst({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json({ trades, activeAccount });
   } catch (error) {
     console.error("GET trades error:", error);
     return NextResponse.json({ error: "Failed to fetch trades." }, { status: 500 });
@@ -46,9 +52,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }
 
-    const activeAccount = await prisma.account.findFirst({
-      where: { userId, status: "ACTIVE" },
+    // Get the most recent account
+    const currentAccount = await prisma.account.findFirst({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
     });
+
+    if (currentAccount) {
+      if (currentAccount.status === "FAILED") {
+        return NextResponse.json(
+          { error: "Your evaluation account has failed due to drawdown limits. You cannot log further trades." },
+          { status: 403 }
+        );
+      }
+      if (currentAccount.status === "PASSED") {
+        return NextResponse.json(
+          { error: "Congratulations! You have passed this evaluation. You cannot log further trades on this demo challenge." },
+          { status: 403 }
+        );
+      }
+    }
+
+    const activeAccount = currentAccount && currentAccount.status === "ACTIVE" ? currentAccount : null;
 
     const isProfit = pnl.trim().startsWith("+");
     const pnlValue = parsePnl(pnl);
@@ -74,6 +99,9 @@ export async function POST(req: NextRequest) {
         where: { id: activeAccount.id },
         data: { balance: newBalance },
       });
+
+      // Recalculate drawdown limits and evaluate pass/fail
+      await checkAccountRules(activeAccount.id);
     }
 
     return NextResponse.json({ success: true, trade });

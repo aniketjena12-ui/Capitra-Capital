@@ -123,12 +123,13 @@ export default async function Dashboard() {
     return Math.max(10, Math.round(pct));
   });
 
-  // Account status label
-  const isDrawdownViolation = overallLossPct >= 8 || dailyLossPct >= 4;
-  const isPassed = currentProfitPct >= 8 && tradingDaysCount >= 5 && !isDrawdownViolation;
+  // Account status from database
+  const status = activeAccount?.status || "INACTIVE";
+  const isFailed = status === "FAILED";
+  const isPassed = status === "PASSED";
   const statusLabel = isPassed 
     ? "Passed" 
-    : isDrawdownViolation 
+    : isFailed 
       ? "Failed" 
       : hasAccount 
         ? "On Track" 
@@ -136,14 +137,14 @@ export default async function Dashboard() {
   
   const statusColorClass = isPassed
     ? "badge-green"
-    : isDrawdownViolation
+    : isFailed
       ? "badge-red"
       : hasAccount
         ? "badge-green"
         : "badge-yellow";
 
   return (
-    <DashboardLayout>
+    <DashboardLayout activePlan={activeAccount}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.75rem" }}>
         <div>
           <h1 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.2rem" }}>Overview</h1>
@@ -152,12 +153,40 @@ export default async function Dashboard() {
         <span className={`badge ${statusColorClass}`}>
           <span style={{ 
             width: 6, height: 6, 
-            background: isPassed ? "var(--green)" : isDrawdownViolation ? "var(--red)" : hasAccount ? "var(--green)" : "var(--yellow)", 
+            background: isPassed ? "var(--green)" : isFailed ? "var(--red)" : hasAccount ? "var(--green)" : "var(--yellow)", 
             borderRadius: "50%", display: "inline-block", marginRight: "4px" 
           }} />
           {statusLabel}
         </span>
       </div>
+
+      {isFailed && (
+        <div className="card" style={{ marginBottom: "1.5rem", padding: "1.5rem", background: "rgba(220,38,38,0.1)", border: "1px solid var(--red)" }}>
+          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+            <span style={{ fontSize: "1.25rem" }}>⚠️</span>
+            <div>
+              <h4 style={{ fontWeight: 600, color: "var(--red)", marginBottom: "0.25rem" }}>Evaluation Failed</h4>
+              <p style={{ fontSize: "0.8125rem", color: "var(--text-2)", lineHeight: 1.4 }}>
+                This challenge account has breached the maximum daily drawdown (4%) or overall drawdown (8%) limit. Further trading is locked. You can purchase a new evaluation to start a fresh challenge.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isPassed && (
+        <div className="card" style={{ marginBottom: "1.5rem", padding: "1.5rem", background: "rgba(22,163,74,0.1)", border: "1px solid var(--green)" }}>
+          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+            <span style={{ fontSize: "1.25rem" }}>🎉</span>
+            <div>
+              <h4 style={{ fontWeight: 600, color: "var(--green)", marginBottom: "0.25rem" }}>Evaluation Passed!</h4>
+              <p style={{ fontSize: "0.8125rem", color: "var(--text-2)", lineHeight: 1.4 }}>
+                Congratulations! You have successfully met the profit target of 8% and completed the minimum of 5 trading days. Your credentials for the funded account are being generated and will be sent to your email.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {!hasAccount && (
         <div className="card" style={{ marginBottom: "1.5rem", padding: "2rem", textAlign: "center", background: "rgba(37,99,235,0.1)", border: "1px solid var(--blue-500)" }}>

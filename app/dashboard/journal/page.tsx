@@ -21,6 +21,7 @@ const blank: { date: string; symbol: string; direction: "BUY" | "SELL"; entry: s
 export default function JournalPage() {
   const { toast } = useToast();
   const [trades, setTrades] = useState<Trade[]>([]);
+  const [activeAccount, setActiveAccount] = useState<{ status: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(blank);
   const [adding, setAdding] = useState(false);
@@ -37,6 +38,7 @@ export default function JournalPage() {
       const data = await res.json();
       if (res.ok) {
         setTrades(data.trades || []);
+        setActiveAccount(data.activeAccount || null);
       } else {
         toast(data.error || "Failed to load trades.", "error");
       }
@@ -145,6 +147,14 @@ export default function JournalPage() {
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setAdding(false)}>Cancel</button>
             </div>
           </form>
+        </div>
+      ) : activeAccount?.status === "FAILED" ? (
+        <div style={{ marginBottom: "1.25rem", padding: "1rem", background: "rgba(220,38,38,0.1)", border: "1px solid var(--red)", borderRadius: "var(--radius-sm)", fontSize: "0.8125rem", color: "var(--red)" }}>
+          🔒 Trade logging is locked because this challenge account has breached drawdown limits.
+        </div>
+      ) : activeAccount?.status === "PASSED" ? (
+        <div style={{ marginBottom: "1.25rem", padding: "1rem", background: "rgba(22,163,74,0.1)", border: "1px solid var(--green)", borderRadius: "var(--radius-sm)", fontSize: "0.8125rem", color: "var(--green)" }}>
+          🔒 Trade logging is locked because this challenge account has successfully passed.
         </div>
       ) : (
         <div style={{ marginBottom: "1.25rem" }}>
