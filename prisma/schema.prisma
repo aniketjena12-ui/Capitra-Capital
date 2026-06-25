@@ -1,0 +1,92 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id             String          @id @default(uuid())
+  name           String
+  email          String          @unique
+  password       String          // Hashed password
+  phone          String?         @default("+91 98765 43210")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  // Bank details for payouts
+  accountName    String?         @default("Demo Trader")
+  accountNo      String?         @default("1234567890")
+  ifsc           String?         @default("HDFC0001234")
+  bankName       String?         @default("HDFC Bank")
+
+  // Notifications toggles
+  emailNotif     Boolean         @default(true)
+  drawdownNotif  Boolean         @default(true)
+  payoutNotif    Boolean         @default(true)
+  newsNotif      Boolean         @default(false)
+
+  // Relations
+  accounts       Account[]
+  trades         Trade[]
+  payoutRequests PayoutRequest[]
+  payments       Payment[]
+}
+
+model Account {
+  id             String          @id @default(uuid())
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planName       String          // "Starter", "Professional", "Elite"
+  balance        Float           // Current balance
+  initialBalance Float           // e.g., 100000, 500000, 1000000
+  status         String          @default("ACTIVE") // "ACTIVE", "PASSED", "FAILED"
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  // Relations
+  trades         Trade[]
+  payouts        PayoutRequest[]
+}
+
+model Trade {
+  id             String          @id @default(uuid())
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId      String?
+  account        Account?        @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  date           String          // "YYYY-MM-DD"
+  symbol         String          // e.g., "NIFTY 50", "BTC/USDT"
+  direction      String          // "BUY" or "SELL"
+  entry          String          // Entry price text or value
+  exit           String          // Exit price text or value
+  pnl            String          // PnL text (e.g. "+₹12,750" or "–₹4,200")
+  isProfit       Boolean
+  notes          String?
+  createdAt      DateTime        @default(now())
+}
+
+model PayoutRequest {
+  id             String          @id @default(uuid())
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId      String
+  account        Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  amount         Float
+  method         String          // "NEFT", "IMPS", "UPI"
+  status         String          @default("PENDING") // "PENDING", "PAID"
+  createdAt      DateTime        @default(now())
+}
+
+model Payment {
+  id             String          @id // razorpay_payment_id
+  orderId        String          @unique // razorpay_order_id
+  amount         Float
+  planName       String
+  status         String          @default("COMPLETED")
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime        @default(now())
+}

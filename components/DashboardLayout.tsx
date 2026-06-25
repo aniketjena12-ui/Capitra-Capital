@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const sidebarNav = [
   { href: "/dashboard",          icon: "📊", label: "Overview"   },
@@ -20,10 +21,44 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
   title?: string;
   subtitle?: string;
+  activePlan?: {
+    planName: string;
+    initialBalance: number;
+    status: string;
+  } | null;
 }
 
-export default function DashboardLayout({ children, title, subtitle }: DashboardLayoutProps) {
+export default function DashboardLayout({ 
+  children, 
+  title, 
+  subtitle,
+  activePlan: activePlanProp
+}: DashboardLayoutProps) {
   const pathname = usePathname();
+  const [activePlan, setActivePlan] = useState<{ planName: string; initialBalance: number; status: string } | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState(true);
+
+  useEffect(() => {
+    if (activePlanProp !== undefined) {
+      setActivePlan(activePlanProp);
+      setLoadingPlan(false);
+    } else {
+      // Fallback: Fetch from payouts API (which returns activeAccount)
+      fetch("/api/payouts")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && data.activeAccount) {
+            setActivePlan({
+              planName: data.activeAccount.planName,
+              initialBalance: data.activeAccount.initialBalance,
+              status: data.activeAccount.status,
+            });
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoadingPlan(false));
+    }
+  }, [activePlanProp]);
 
   return (
     <div className="dashboard-layout">
@@ -57,14 +92,29 @@ export default function DashboardLayout({ children, title, subtitle }: Dashboard
           </Link>
         </div>
 
-        <div className="sidebar-plan-badge">
-          <div className="sidebar-plan-name">Professional Plan</div>
-          <div className="sidebar-plan-detail">₹5,00,000 Account</div>
-          <div className="sidebar-plan-status">
-            <span className="status-dot" />
-            Active
+        {/* Dynamic Plan Badge */}
+        {!loadingPlan && (
+          <div style={{ marginTop: "auto", padding: "1rem" }}>
+            {activePlan ? (
+              <div className="sidebar-plan-badge">
+                <div className="sidebar-plan-name">{activePlan.planName} Plan</div>
+                <div className="sidebar-plan-detail">₹{activePlan.initialBalance.toLocaleString("en-IN")} Account</div>
+                <div className="sidebar-plan-status">
+                  <span className="status-dot" style={{ background: activePlan.status === "ACTIVE" ? "var(--green)" : "var(--red)" }} />
+                  {activePlan.status === "ACTIVE" ? "Active" : activePlan.status}
+                </div>
+              </div>
+            ) : (
+              <div className="sidebar-plan-badge" style={{ background: "rgba(239, 68, 68, 0.05)", borderColor: "rgba(239, 68, 68, 0.15)" }}>
+                <div className="sidebar-plan-name" style={{ color: "var(--red)", fontSize: "0.8125rem" }}>No Active Challenge</div>
+                <div className="sidebar-plan-detail">Pass evaluation to start</div>
+                <div className="sidebar-plan-status" style={{ color: "var(--text-3)" }}>
+                  Inactive
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </aside>
 
       {/* Main */}

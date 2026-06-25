@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useToast } from "@/components/ToastProvider";
 
@@ -16,40 +16,72 @@ interface Trade {
   notes: string;
 }
 
-const seedTrades: Trade[] = [
-  { id: "1", date: "2026-06-25", symbol: "NIFTY 50",  direction: "BUY",  entry: "23,450", exit: "23,620", pnl: "+₹12,750", isProfit: true,  notes: "Clean breakout above resistance after RBI hold." },
-  { id: "2", date: "2026-06-25", symbol: "BANKNIFTY", direction: "SELL", entry: "51,200", exit: "51,480", pnl: "–₹4,200",  isProfit: false, notes: "Entered early, trend wasn't confirmed." },
-  { id: "3", date: "2026-06-24", symbol: "BTC/USDT",  direction: "BUY",  entry: "62,100", exit: "63,500", pnl: "+₹21,000", isProfit: true,  notes: "Strong momentum after ETF news." },
-];
-
 const blank: { date: string; symbol: string; direction: "BUY" | "SELL"; entry: string; exit: string; pnl: string; notes: string } = { date: "", symbol: "", direction: "BUY", entry: "", exit: "", pnl: "", notes: "" };
 
 export default function JournalPage() {
   const { toast } = useToast();
-  const [trades, setTrades]   = useState<Trade[]>(seedTrades);
-  const [form, setForm]       = useState(blank);
-  const [adding, setAdding]   = useState(false);
-  const [filter, setFilter]   = useState<"all" | "win" | "loss">("all");
+  const [trades, setTrades] = useState<Trade[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState(blank);
+  const [adding, setAdding] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [filter, setFilter] = useState<"all" | "win" | "loss">("all");
+
+  useEffect(() => {
+    fetchTrades();
+  }, []);
+
+  async function fetchTrades() {
+    try {
+      const res = await fetch("/api/trades");
+      const data = await res.json();
+      if (res.ok) {
+        setTrades(data.trades || []);
+      } else {
+        toast(data.error || "Failed to load trades.", "error");
+      }
+    } catch {
+      toast("Error fetching trades.", "error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.symbol || !form.entry || !form.exit || !form.pnl) {
+      toast("Fill in all required fields.", "error"); return;
+    }
+    
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/trades", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast("Trade logged successfully.", "success");
+        setForm(blank);
+        setAdding(false);
+        fetchTrades();
+      } else {
+        toast(data.error || "Failed to save trade.", "error");
+      }
+    } catch {
+      toast("Server error saving trade.", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   const visible = trades.filter(t =>
     filter === "all" ? true : filter === "win" ? t.isProfit : !t.isProfit
   );
 
-  const wins  = trades.filter(t => t.isProfit).length;
+  const wins = trades.filter(t => t.isProfit).length;
   const total = trades.length;
-
-  function handleAdd(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.symbol || !form.entry || !form.exit || !form.pnl) {
-      toast("Fill in all required fields.", "error"); return;
-    }
-    const isProfit = form.pnl.trim().startsWith("+");
-    const newTrade: Trade = { ...form, id: Date.now().toString(), isProfit };
-    setTrades(prev => [newTrade, ...prev]);
-    setForm(blank);
-    setAdding(false);
-    toast("Trade logged successfully.", "success");
-  }
 
   return (
     <DashboardLayout title="Trade Journal" subtitle="Log and review all your trades for continuous improvement">
@@ -107,7 +139,9 @@ export default function JournalPage() {
               <textarea className="form-input" placeholder="Why did you take this trade? What did you learn?" rows={3} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
             </div>
             <div style={{ display: "flex", gap: "0.75rem" }}>
-              <button type="submit" className="btn btn-blue btn-sm">Save Trade</button>
+              <button type="submit" disabled={submitting} className="btn btn-blue btn-sm">
+                {submitting ? "Saving..." : "Save Trade"}
+              </button>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setAdding(false)}>Cancel</button>
             </div>
           </form>
@@ -129,28 +163,33 @@ export default function JournalPage() {
 
       {/* Trades list */}
       <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-        {visible.length === 0 && (
+        {loading ? (
           <div className="card" style={{ textAlign: "center", padding: "3rem", color: "var(--text-3)" }}>
-            No trades yet. Click &quot;Log Trade&quot; to add your first entry.
+            Loading trades...
           </div>
+        ) : visible.length === 0 ? (
+          <div className="card" style={{ textAlign: "center", padding: "3rem", color: "var(--text-3)" }}>
+            No trades logged yet. Click &quot;Log Trade&quot; to add your first entry.
+          </div>
+        ) : (
+          visible.map((t) => (
+            <div key={t.id} className="card" style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: "1.25rem", alignItems: "center" }}>
+              <div style={{ textAlign: "center" }}>
+                <span className={`badge ${t.direction === "BUY" ? "badge-green" : "badge-red"}`} style={{ fontSize: "0.625rem", marginBottom: "0.25rem", display: "block" }}>{t.direction}</span>
+                <div style={{ fontSize: "0.6875rem", color: "var(--text-3)" }}>{t.date}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: "0.9375rem", fontWeight: 600, color: "var(--text-1)", marginBottom: "0.25rem" }}>{t.symbol}</div>
+                <div style={{ fontSize: "0.75rem", color: "var(--text-3)" }}>Entry {t.entry} → Exit {t.exit}</div>
+                {t.notes && <div style={{ fontSize: "0.75rem", color: "var(--text-2)", marginTop: "0.375rem", fontStyle: "italic" }}>&quot;{t.notes}&quot;</div>}
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: "1.125rem", fontWeight: 700, color: t.isProfit ? "var(--green)" : "var(--red)" }}>{t.pnl}</div>
+                <span className={`badge ${t.isProfit ? "badge-green" : "badge-red"}`} style={{ fontSize: "0.5625rem" }}>{t.isProfit ? "WIN" : "LOSS"}</span>
+              </div>
+            </div>
+          ))
         )}
-        {visible.map((t) => (
-          <div key={t.id} className="card" style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: "1.25rem", alignItems: "center" }}>
-            <div style={{ textAlign: "center" }}>
-              <span className={`badge ${t.direction === "BUY" ? "badge-green" : "badge-red"}`} style={{ fontSize: "0.625rem", marginBottom: "0.25rem", display: "block" }}>{t.direction}</span>
-              <div style={{ fontSize: "0.6875rem", color: "var(--text-3)" }}>{t.date}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: "0.9375rem", fontWeight: 600, color: "var(--text-1)", marginBottom: "0.25rem" }}>{t.symbol}</div>
-              <div style={{ fontSize: "0.75rem", color: "var(--text-3)" }}>Entry {t.entry} → Exit {t.exit}</div>
-              {t.notes && <div style={{ fontSize: "0.75rem", color: "var(--text-2)", marginTop: "0.375rem", fontStyle: "italic" }}>&quot;{t.notes}&quot;</div>}
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: "1.125rem", fontWeight: 700, color: t.isProfit ? "var(--green)" : "var(--red)" }}>{t.pnl}</div>
-              <span className={`badge ${t.isProfit ? "badge-green" : "badge-red"}`} style={{ fontSize: "0.5625rem" }}>{t.isProfit ? "WIN" : "LOSS"}</span>
-            </div>
-          </div>
-        ))}
       </div>
     </DashboardLayout>
   );

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findUserByEmail, createUser } from "@/lib/users";
+import bcryptjs from "bcryptjs";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,18 +15,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Password must be at least 6 characters." }, { status: 400 });
     }
 
-    const existing = findUserByEmail(email);
+    const existing = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+    
     if (existing) {
       return NextResponse.json({ error: "An account with this email already exists." }, { status: 409 });
     }
 
-    const user = createUser(name, email, password);
+    const passwordHash = await bcryptjs.hash(password, 10);
+
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email: email.toLowerCase(),
+        password: passwordHash,
+      },
+    });
 
     return NextResponse.json(
       { message: "Account created successfully.", userId: user.id },
       { status: 201 }
     );
-  } catch {
+  } catch (error) {
+    console.error("Register route error:", error);
     return NextResponse.json({ error: "Server error. Please try again." }, { status: 500 });
   }
 }
