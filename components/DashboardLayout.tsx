@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 
 const sidebarNav = [
   { href: "/dashboard",          icon: "📊", label: "Overview"   },
@@ -35,8 +36,11 @@ export default function DashboardLayout({
   activePlan: activePlanProp
 }: DashboardLayoutProps) {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const [activePlan, setActivePlan] = useState<{ planName: string; initialBalance: number; status: string } | null>(null);
   const [loadingPlan, setLoadingPlan] = useState(true);
+
+  const isAdmin = session?.user?.email === "admin@capitracapital.com";
 
   useEffect(() => {
     if (activePlanProp !== undefined) {
@@ -76,6 +80,16 @@ export default function DashboardLayout({
               {item.label}
             </Link>
           ))}
+          {isAdmin && (
+            <Link
+              href="/admin/payouts"
+              className={`sidebar-nav-item${pathname === "/admin/payouts" ? " active" : ""}`}
+              style={{ borderLeft: "2px solid var(--yellow)" }}
+            >
+              <span className="sidebar-icon">👑</span>
+              Admin Console
+            </Link>
+          )}
         </div>
 
         <div className="sidebar-section">
