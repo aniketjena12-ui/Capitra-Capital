@@ -22,7 +22,7 @@ const seedTrades: Trade[] = [
   { id: "3", date: "2026-06-24", symbol: "BTC/USDT",  direction: "BUY",  entry: "62,100", exit: "63,500", pnl: "+₹21,000", isProfit: true,  notes: "Strong momentum after ETF news." },
 ];
 
-const blank = { date: "", symbol: "", direction: "BUY" as const, entry: "", exit: "", pnl: "", notes: "" };
+const blank: { date: string; symbol: string; direction: "BUY" | "SELL"; entry: string; exit: string; pnl: string; notes: string } = { date: "", symbol: "", direction: "BUY", entry: "", exit: "", pnl: "", notes: "" };
 
 export default function JournalPage() {
   const { toast } = useToast();
