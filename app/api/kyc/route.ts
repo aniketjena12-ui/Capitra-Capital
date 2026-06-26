@@ -1,33 +1,27 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { ApiError, withHandler, requireAuth, ok } from "@/lib/api";
 
 // GET — fetch current user's KYC status
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const userId = (session.user as { id: string }).id;
+export const GET = withHandler(async () => {
+  const { userId } = await requireAuth();
+  
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { kycStatus: true, kycIdUrl: true, kycSelfieUrl: true, kycNotes: true },
   });
 
-  return NextResponse.json({ kyc: user });
-}
+  return ok({ kyc: user });
+});
 
-// POST — submit KYC (stores file names; in production, store actual uploaded files)
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const userId = (session.user as { id: string }).id;
+// POST — submit KYC
+export const POST = withHandler(async (req: NextRequest) => {
+  const { userId } = await requireAuth();
   const body = await req.json();
   const { kycIdUrl, kycSelfieUrl } = body;
 
   if (!kycIdUrl || !kycSelfieUrl) {
-    return NextResponse.json({ error: "Both Government ID and Selfie are required." }, { status: 400 });
+    throw ApiError.badRequest("Both Government ID and Selfie are required.");
   }
 
   await prisma.user.update({
@@ -49,5 +43,5 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return NextResponse.json({ message: "KYC submitted successfully. Under review." });
-}
+  return ok({ message: "KYC submitted successfully. Under review." });
+});

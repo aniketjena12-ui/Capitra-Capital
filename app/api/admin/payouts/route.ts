@@ -1,135 +1,118 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions, ADMIN_EMAIL } from "@/lib/auth";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail, emailPayoutApproved, emailPayoutRejected } from "@/lib/email";
+import { ApiError, withHandler, requireAdmin, ok } from "@/lib/api";
 
-// Check if user is admin
-async function isAdmin() {
-  const session = await getServerSession(authOptions);
-  return session && session.user && session.user.email === ADMIN_EMAIL;
-}
+export const GET = withHandler(async () => {
+  await requireAdmin();
 
-export async function GET() {
-  try {
-    if (!(await isAdmin())) {
-      return NextResponse.json({ error: "Access Denied: Admin privileges required." }, { status: 403 });
-    }
-
-    const payouts = await prisma.payoutRequest.findMany({
-      orderBy: { createdAt: "desc" },
-      include: {
-        user: {
-          select: {
-            name: true,
-            email: true,
-          },
+  const payouts = await prisma.payoutRequest.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      user: {
+        select: {
+          name: true,
+          email: true,
         },
-        account: {
-          select: {
-            planName: true,
-            initialBalance: true,
-          },
+      },
+      account: {
+        select: {
+          planName: true,
+          initialBalance: true,
         },
+      },
+    },
+  });
+
+  return ok({ payouts });
+});
+
+export const POST = withHandler(async (req: NextRequest) => {
+  await requireAdmin();
+
+  const body = await req.json();
+  const { payoutId, action } = body;
+
+  if (!payoutId || !action) {
+    throw ApiError.badRequest("Payout ID and action are required.");
+  }
+
+  if (action !== "APPROVE" && action !== "REJECT") {
+    throw ApiError.badRequest("Invalid action. Must be APPROVE or REJECT.");
+  }
+
+  const payout = await prisma.payoutRequest.findUnique({
+    where: { id: payoutId },
+  });
+
+  if (!payout) {
+    throw ApiError.notFound("Payout request not found.");
+  }
+
+  if (payout.status !== "PENDING") {
+    throw ApiError.badRequest("Payout request has already been processed.");
+  }
+
+  if (action === "APPROVE") {
+    await prisma.payoutRequest.update({
+      where: { id: payoutId },
+      data: { status: "PAID" },
+    });
+
+    await prisma.notification.create({
+      data: {
+        userId: payout.userId,
+        title: "Withdrawal Approved! 🎉",
+        message: `Your withdrawal request of ₹${payout.amount.toLocaleString("en-IN")} via ${payout.method} has been approved. Funds are on the way.`,
+        type: "SUCCESS",
       },
     });
 
-    return NextResponse.json({ payouts });
-  } catch (error) {
-    console.error("GET admin payouts error:", error);
-    return NextResponse.json({ error: "Failed to fetch payout requests." }, { status: 500 });
-  }
-}
-
-export async function POST(req: NextRequest) {
-  try {
-    if (!(await isAdmin())) {
-      return NextResponse.json({ error: "Access Denied: Admin privileges required." }, { status: 403 });
+    // Send email notification
+    const trader = await prisma.user.findUnique({ where: { id: payout.userId }, select: { name: true, email: true } });
+    if (trader?.email) {
+      const { subject, html } = emailPayoutApproved(trader.name, payout.amount);
+      await sendEmail({ to: trader.email, subject, html }).catch(err => {
+        console.error("Failed to send payout approval email:", err);
+      });
     }
 
-    const body = await req.json();
-    const { payoutId, action } = body;
+    return ok({ success: true, message: "Payout request approved successfully." });
+  } else {
+    // REJECT - refund user balance in a transaction
+    await prisma.$transaction([
+      prisma.payoutRequest.update({
+        where: { id: payoutId },
+        data: { status: "REJECTED" },
+      }),
+      prisma.account.update({
+        where: { id: payout.accountId },
+        data: {
+          balance: {
+            increment: payout.amount,
+          },
+        },
+      }),
+    ]);
 
-    if (!payoutId || !action) {
-      return NextResponse.json({ error: "Payout ID and action are required." }, { status: 400 });
-    }
-
-    if (action !== "APPROVE" && action !== "REJECT") {
-      return NextResponse.json({ error: "Invalid action. Must be APPROVE or REJECT." }, { status: 400 });
-    }
-
-    const payout = await prisma.payoutRequest.findUnique({
-      where: { id: payoutId },
+    await prisma.notification.create({
+      data: {
+        userId: payout.userId,
+        title: "Withdrawal Rejected",
+        message: `Your withdrawal request of ₹${payout.amount.toLocaleString("en-IN")} has been rejected. The full amount has been refunded to your account balance.`,
+        type: "WARNING",
+      },
     });
 
-    if (!payout) {
-      return NextResponse.json({ error: "Payout request not found." }, { status: 404 });
+    // Send email notification
+    const trader = await prisma.user.findUnique({ where: { id: payout.userId }, select: { name: true, email: true } });
+    if (trader?.email) {
+      const { subject, html } = emailPayoutRejected(trader.name);
+      await sendEmail({ to: trader.email, subject, html }).catch(err => {
+        console.error("Failed to send payout rejection email:", err);
+      });
     }
 
-    if (payout.status !== "PENDING") {
-      return NextResponse.json({ error: "Payout request has already been processed." }, { status: 400 });
-    }
-
-    if (action === "APPROVE") {
-      await prisma.payoutRequest.update({
-        where: { id: payoutId },
-        data: { status: "PAID" },
-      });
-
-      await prisma.notification.create({
-        data: {
-          userId: payout.userId,
-          title: "Withdrawal Approved! 🎉",
-          message: `Your withdrawal request of ₹${payout.amount.toLocaleString("en-IN")} via ${payout.method} has been approved. Funds are on the way.`,
-          type: "SUCCESS",
-        },
-      });
-
-      // Send email notification
-      const trader = await prisma.user.findUnique({ where: { id: payout.userId }, select: { name: true, email: true } });
-      if (trader?.email) {
-        const { subject, html } = emailPayoutApproved(trader.name, payout.amount);
-        await sendEmail({ to: trader.email, subject, html });
-      }
-
-      return NextResponse.json({ success: true, message: "Payout request approved successfully." });
-    } else {
-      // REJECT - refund user balance in a transaction
-      await prisma.$transaction([
-        prisma.payoutRequest.update({
-          where: { id: payoutId },
-          data: { status: "REJECTED" },
-        }),
-        prisma.account.update({
-          where: { id: payout.accountId },
-          data: {
-            balance: {
-              increment: payout.amount,
-            },
-          },
-        }),
-      ]);
-
-      await prisma.notification.create({
-        data: {
-          userId: payout.userId,
-          title: "Withdrawal Rejected",
-          message: `Your withdrawal request of ₹${payout.amount.toLocaleString("en-IN")} has been rejected. The full amount has been refunded to your account balance.`,
-          type: "WARNING",
-        },
-      });
-
-      // Send email notification
-      const trader = await prisma.user.findUnique({ where: { id: payout.userId }, select: { name: true, email: true } });
-      if (trader?.email) {
-        const { subject, html } = emailPayoutRejected(trader.name);
-        await sendEmail({ to: trader.email, subject, html });
-      }
-
-      return NextResponse.json({ success: true, message: "Payout request rejected and balance refunded." });
-    }
-  } catch (error) {
-    console.error("POST admin payouts error:", error);
-    return NextResponse.json({ error: "Failed to process payout request." }, { status: 500 });
+    return ok({ success: true, message: "Payout request rejected and balance refunded." });
   }
-}
+});

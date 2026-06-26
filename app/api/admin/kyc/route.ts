@@ -1,17 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions, ADMIN_EMAIL } from "@/lib/auth";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail, emailKycVerified } from "@/lib/email";
-
-function isAdmin(session: { user?: { email?: string | null } } | null) {
-  return session?.user?.email === ADMIN_EMAIL;
-}
+import { ApiError, withHandler, requireAdmin, ok } from "@/lib/api";
 
 // GET — list all users with KYC data (admin only)
-export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!isAdmin(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+export const GET = withHandler(async (req: NextRequest) => {
+  await requireAdmin();
 
   const { searchParams } = new URL(req.url);
   const statusFilter = searchParams.get("status"); // PENDING, VERIFIED, UNVERIFIED, or null (all)
@@ -31,17 +25,16 @@ export async function GET(req: NextRequest) {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ users });
-}
+  return ok({ users });
+});
 
 // POST — approve or reject KYC (admin only)
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!isAdmin(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+export const POST = withHandler(async (req: NextRequest) => {
+  await requireAdmin();
 
   const { userId, action, notes } = await req.json();
   if (!userId || !["APPROVE", "REJECT"].includes(action)) {
-    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+    throw ApiError.badRequest("Invalid request.");
   }
 
   const newStatus = action === "APPROVE" ? "VERIFIED" : "UNVERIFIED";
@@ -68,11 +61,13 @@ export async function POST(req: NextRequest) {
     const trader = await prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true } });
     if (trader?.email) {
       const { subject, html } = emailKycVerified(trader.name);
-      await sendEmail({ to: trader.email, subject, html });
+      await sendEmail({ to: trader.email, subject, html }).catch(err => {
+        console.error("Failed to send KYC approval email:", err);
+      });
     }
   }
 
-  return NextResponse.json({
+  return ok({
     message: `KYC ${action === "APPROVE" ? "approved" : "rejected"} successfully.`,
   });
-}
+});
