@@ -91,7 +91,7 @@ export default function CheckoutPage({
       const orderRes = await fetch("/api/razorpay/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: discountedPrice, planName: plan.name }),
+        body: JSON.stringify({ amount: totalWithGst, planName: plan.name }),
       });
       const order = await orderRes.json();
       if (!orderRes.ok) { toast(order.error || "Failed to create order.", "error"); setPaying(false); return; }

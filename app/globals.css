@@ -156,6 +156,101 @@ body::before {
   color: #93c5fd;
 }
 
+/* Mobile hamburger button */
+.nav-hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 20px;
+  height: 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 101;
+}
+
+.nav-hamburger span {
+  width: 100%;
+  height: 2px;
+  background-color: var(--text-1);
+  transition: all 0.25s ease-in-out;
+  transform-origin: left center;
+}
+
+.nav-hamburger.open span:nth-child(1) {
+  transform: rotate(45deg) translate(1px, -1px);
+}
+
+.nav-hamburger.open span:nth-child(2) {
+  width: 0%;
+  opacity: 0;
+}
+
+.nav-hamburger.open span:nth-child(3) {
+  transform: rotate(-45deg) translate(1px, 1px);
+}
+
+/* Mobile Drawer */
+.nav-drawer {
+  position: fixed;
+  top: 0;
+  right: -100%;
+  width: 280px;
+  height: 100vh;
+  background: rgba(12, 15, 26, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-left: 1px solid var(--border-soft);
+  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto;
+}
+
+.nav-drawer.open {
+  right: 0;
+}
+
+.nav-drawer-inner {
+  display: flex;
+  flex-direction: column;
+  padding: 6rem 1.5rem 2rem;
+  gap: 1.25rem;
+}
+
+.nav-drawer-link {
+  color: var(--text-2);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  padding: 0.5rem 0;
+  transition: color 0.18s ease;
+}
+
+.nav-drawer-link:hover,
+.nav-drawer-link.active {
+  color: var(--text-1);
+}
+
+/* Backdrop */
+.nav-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: opacity 0.3s ease;
+}
+
+/* Responsive Media Queries for Navbar */
+@media (max-width: 768px) {
+  .navbar-desktop {
+    display: none !important;
+  }
+  .nav-hamburger {
+    display: flex !important;
+  }
+}
+
 /* ============================================
    FOOTER
    ============================================ */

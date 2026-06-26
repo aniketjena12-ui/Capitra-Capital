@@ -99,8 +99,7 @@ export default function Navbar() {
             Capitra Capital
           </Link>
 
-          {/* Desktop links */}
-          <div className="navbar-links navbar-desktop" style={{ display: "flex", alignItems: "center" }}>
+          <div className="navbar-links navbar-desktop">
             {navLinks.map((l) => (
               <Link
                 key={l.href}
