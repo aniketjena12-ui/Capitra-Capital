@@ -9,7 +9,6 @@ const navLinks = [
   { href: "/challenges", label: "Challenges" },
   { href: "/rules", label: "Rules" },
   { href: "/leaderboard", label: "Leaderboard" },
-  { href: "/affiliate", label: "Affiliate" },
   { href: "/blog", label: "Blog" },
   { href: "/faq", label: "FAQ" },
   { href: "/contact", label: "Contact" },

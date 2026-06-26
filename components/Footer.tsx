@@ -5,7 +5,6 @@ const footerLinks = {
     { href: "/challenges", label: "Challenges" },
     { href: "/rules", label: "Trading Rules" },
     { href: "/leaderboard", label: "Leaderboard" },
-    { href: "/affiliate", label: "Affiliate Program" },
   ],
   Company: [
     { href: "/about", label: "About Us" },
