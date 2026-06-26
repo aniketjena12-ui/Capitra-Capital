@@ -1,8 +1,13 @@
 /**
  * lib/env.ts
- * Validates all required environment variables at startup.
- * Import this at the top of any server-side module that needs these values.
- * Throws a clear error at build/start time instead of failing silently with placeholders.
+ * Validates environment variables at startup.
+ *
+ * - requireEnv(): throws at build/start time if a variable is missing.
+ *   Use for variables that are unconditionally needed (DB, auth secret).
+ *
+ * - optionalEnv(): returns the value or undefined.
+ *   Use for variables that gate optional features (payment keys, SMTP).
+ *   The feature itself should check for undefined and degrade gracefully.
  */
 
 function requireEnv(key: string): string {
@@ -10,20 +15,32 @@ function requireEnv(key: string): string {
   if (!value || value.trim() === "") {
     throw new Error(
       `[Capitra] Missing required environment variable: "${key}". ` +
-        `Please add it to your .env file and to Vercel environment settings.`
+      `Please add it to your .env file and to Vercel environment settings.`
     );
   }
   return value;
 }
 
+function optionalEnv(key: string): string | undefined {
+  const value = process.env[key];
+  return value && value.trim() !== "" ? value : undefined;
+}
+
 export const env = {
-  // Database
-  DATABASE_URL: requireEnv("DATABASE_URL"),
+  // ── Required — app will not start without these ──────────────────────────
+  DATABASE_URL:     requireEnv("DATABASE_URL"),
+  NEXTAUTH_SECRET:  requireEnv("NEXTAUTH_SECRET"),
 
-  // NextAuth
-  NEXTAUTH_SECRET: requireEnv("NEXTAUTH_SECRET"),
+  // ── Optional — features degrade gracefully when absent ───────────────────
 
-  // Razorpay (server-side secret keys — never exposed to client)
-  RAZORPAY_KEY_ID: requireEnv("RAZORPAY_KEY_ID"),
-  RAZORPAY_KEY_SECRET: requireEnv("RAZORPAY_KEY_SECRET"),
+  // Razorpay — payment routes return 503 if these are not set
+  RAZORPAY_KEY_ID:     optionalEnv("RAZORPAY_KEY_ID"),
+  RAZORPAY_KEY_SECRET: optionalEnv("RAZORPAY_KEY_SECRET"),
+
+  // SMTP — emails are skipped (logged to console) if not configured
+  SMTP_HOST: optionalEnv("SMTP_HOST"),
+  SMTP_PORT: optionalEnv("SMTP_PORT"),
+  SMTP_USER: optionalEnv("SMTP_USER"),
+  SMTP_PASS: optionalEnv("SMTP_PASS"),
+  SMTP_FROM: optionalEnv("SMTP_FROM"),
 } as const;
