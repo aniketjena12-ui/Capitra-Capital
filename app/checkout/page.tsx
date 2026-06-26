@@ -48,27 +48,33 @@ export default function CheckoutPage({
   const [promoApplied, setPromoApplied] = useState(false);
   const [promoError, setPromoError] = useState("");
   const [discount, setDiscount] = useState(0);
+  const [applyingPromo, setApplyingPromo] = useState(false);
 
-  // Demo promo codes — swap with an API call in production
-  const PROMO_CODES: Record<string, number> = {
-    "CAPITRA10": 10,
-    "WELCOME20": 20,
-    "LAUNCH25": 25,
-  };
-
-  function applyPromo() {
+  async function applyPromo() {
     const code = promoCode.trim().toUpperCase();
     if (!code) return;
-    const pct = PROMO_CODES[code];
-    if (pct) {
-      setDiscount(pct);
-      setPromoApplied(true);
-      setPromoError("");
-      toast(`Promo code applied! ${pct}% discount activated.`, "success");
-    } else {
-      setPromoError("Invalid or expired promo code.");
-      setPromoApplied(false);
-      setDiscount(0);
+    setApplyingPromo(true);
+    setPromoError("");
+    try {
+      const res = await fetch("/api/razorpay/validate-promo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, planPrice: plan.price }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setDiscount(data.discountPct);
+        setPromoApplied(true);
+        toast(`Promo code applied! ${data.discountPct}% discount activated.`, "success");
+      } else {
+        setPromoError(data.message || "Invalid or expired promo code.");
+        setPromoApplied(false);
+        setDiscount(0);
+      }
+    } catch {
+      setPromoError("Could not validate promo code. Please try again.");
+    } finally {
+      setApplyingPromo(false);
     }
   }
 
@@ -163,11 +169,11 @@ export default function CheckoutPage({
               <button
                 type="button"
                 onClick={applyPromo}
-                disabled={promoApplied || !promoCode.trim()}
+                disabled={promoApplied || !promoCode.trim() || applyingPromo}
                 className="btn btn-ghost btn-sm"
                 style={{ flexShrink: 0 }}
               >
-                {promoApplied ? "Applied ✓" : "Apply"}
+                {promoApplied ? "Applied ✓" : applyingPromo ? "Checking…" : "Apply"}
               </button>
             </div>
             {promoError && (

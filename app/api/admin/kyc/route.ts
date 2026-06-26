@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authOptions, ADMIN_EMAIL } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendEmail, emailKycVerified } from "@/lib/email";
 
 function isAdmin(session: { user?: { email?: string | null } } | null) {
-  return session?.user?.email === "admin@capitracapital.com";
+  return session?.user?.email === ADMIN_EMAIL;
 }
 
 // GET — list all users with KYC data (admin only)

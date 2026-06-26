@@ -4,6 +4,10 @@ import bcryptjs from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 
+/** Single source of truth for admin identity. Can be overridden via env var. */
+export const ADMIN_EMAIL =
+  process.env.ADMIN_EMAIL || "admin@capitracapital.com";
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -52,7 +56,9 @@ export const authOptions: NextAuthOptions = {
   },
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
-  secret: process.env.NEXTAUTH_SECRET || "capitra-capital-secret-key",
+  // Do NOT provide a fallback — if NEXTAUTH_SECRET is missing, NextAuth
+  // will throw an explicit error rather than using an insecure default.
+  secret: process.env.NEXTAUTH_SECRET,
 };
 
 export async function auth() {

@@ -1,12 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import { rateLimit, getIp } from "@/lib/rateLimit";
 
 const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || "rzp_test_placeholder",
-  key_secret: process.env.RAZORPAY_KEY_SECRET || "placeholder_secret",
+  key_id: process.env.RAZORPAY_KEY_ID!,
+  key_secret: process.env.RAZORPAY_KEY_SECRET!,
 });
 
 export async function POST(req: NextRequest) {
+  // Auth check — only logged-in users can initiate payments
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Rate limit — 10 order attempts per IP per 15 minutes
+  const ip = getIp(req);
+  const limit = rateLimit(`create-order:${ip}`, { limit: 10, windowSeconds: 15 * 60 });
+  if (!limit.success) {
+    return NextResponse.json(
+      { error: "Too many requests. Please wait before trying again." },
+      { status: 429 }
+    );
+  }
+
   try {
     const body = await req.json();
     const { amount, planName } = body;

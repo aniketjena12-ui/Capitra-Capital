@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authOptions, ADMIN_EMAIL } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendEmail, emailPayoutApproved, emailPayoutRejected } from "@/lib/email";
-
-const ADMIN_EMAIL = "admin@capitracapital.com";
 
 // Check if user is admin
 async function isAdmin() {

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
-
-const ADMIN_EMAIL = "admin@capitracapital.com";
+import { ADMIN_EMAIL } from "@/lib/auth";
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -9,7 +8,7 @@ export async function middleware(req: NextRequest) {
   if (pathname.startsWith("/admin")) {
     const token = await getToken({
       req,
-      secret: process.env.NEXTAUTH_SECRET || "capitra-capital-secret-key",
+      secret: process.env.NEXTAUTH_SECRET,
     });
 
     // Not logged in → go to login
