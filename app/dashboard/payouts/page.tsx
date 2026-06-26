@@ -26,10 +26,24 @@ export default function PayoutsPage() {
   const [method, setMethod] = useState("NEFT");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [kycStatus, setKycStatus] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPayouts();
+    fetchKycStatus();
   }, []);
+
+  async function fetchKycStatus() {
+    try {
+      const res = await fetch("/api/kyc");
+      const data = await res.json();
+      if (res.ok && data.kyc) {
+        setKycStatus(data.kyc.kycStatus);
+      }
+    } catch {
+      // non-critical — silently fail
+    }
+  }
 
   async function fetchPayouts() {
     try {
@@ -109,6 +123,41 @@ export default function PayoutsPage() {
         </div>
       </div>
 
+      {/* KYC Gate Banner */}
+      {kycStatus !== null && kycStatus !== "VERIFIED" && (
+        <div
+          className="card"
+          style={{
+            marginBottom: "1.5rem",
+            padding: "1.25rem 1.5rem",
+            background: kycStatus === "PENDING" ? "rgba(37,99,235,0.08)" : "rgba(234,179,8,0.07)",
+            border: `1px solid ${kycStatus === "PENDING" ? "rgba(59,130,246,0.3)" : "rgba(234,179,8,0.3)"}`,
+            display: "flex",
+            alignItems: "center",
+            gap: "1rem",
+          }}
+        >
+          <span style={{ fontSize: "1.5rem", flexShrink: 0 }}>
+            {kycStatus === "PENDING" ? "🔄" : "⚠️"}
+          </span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600, fontSize: "0.875rem", color: "var(--text-1)", marginBottom: "0.25rem" }}>
+              {kycStatus === "PENDING" ? "KYC Under Review" : "KYC Verification Required"}
+            </div>
+            <p style={{ fontSize: "0.8125rem", color: "var(--text-2)", lineHeight: 1.5 }}>
+              {kycStatus === "PENDING"
+                ? "Your identity documents are being reviewed. Payouts will be enabled once verification is complete (1–2 business days)."
+                : "You must complete KYC verification before requesting a payout. This protects your earnings."}
+            </p>
+          </div>
+          {kycStatus !== "PENDING" && (
+            <a href="/dashboard/kyc" className="btn btn-blue btn-sm" style={{ flexShrink: 0 }}>
+              Verify Now →
+            </a>
+          )}
+        </div>
+      )}
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr", gap: "1.5rem", alignItems: "start" }}>
         {/* Request Form */}
         <div className="card">
@@ -127,16 +176,16 @@ export default function PayoutsPage() {
             <form onSubmit={handleRequest} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               <div className="form-group">
                 <label className="form-label">Amount (₹)</label>
-                <input 
-                  className="form-input" 
-                  type="number" 
-                  placeholder="e.g. 10000" 
-                  min={1000} 
-                  max={available || 1000} 
-                  disabled={available < 1000}
-                  value={amount} 
-                  onChange={e => setAmount(e.target.value)} 
-                  required 
+                <input
+                  className="form-input"
+                  type="number"
+                  placeholder="e.g. 10000"
+                  min={1000}
+                  max={available || 1000}
+                  disabled={available < 1000 || kycStatus !== "VERIFIED"}
+                  value={amount}
+                  onChange={e => setAmount(e.target.value)}
+                  required
                 />
                 <span style={{ fontSize: "0.6875rem", color: "var(--text-3)" }}>
                   Min: ₹1,000 · Max: ₹{available.toLocaleString("en-IN")}
@@ -145,7 +194,7 @@ export default function PayoutsPage() {
 
               <div className="form-group">
                 <label className="form-label">Transfer Method</label>
-                <select className="form-input" value={method} onChange={e => setMethod(e.target.value)} style={{ appearance: "none" }} disabled={available < 1000}>
+                <select className="form-input" value={method} onChange={e => setMethod(e.target.value)} style={{ appearance: "none" }} disabled={available < 1000 || kycStatus !== "VERIFIED"}>
                   <option value="NEFT">NEFT</option>
                   <option value="IMPS">IMPS</option>
                   <option value="UPI">UPI</option>
@@ -156,8 +205,16 @@ export default function PayoutsPage() {
                 Payouts are sent to the bank account registered in Settings. Processing time: 1–3 business days.
               </div>
 
-              <button type="submit" disabled={submitting || available < 1000} className="btn btn-blue btn-full">
-                {submitting ? "Submitting…" : available < 1000 ? "Insufficient Profit for Payout" : "Request Payout →"}
+              <button type="submit" disabled={submitting || available < 1000 || kycStatus !== "VERIFIED"} className="btn btn-blue btn-full">
+                {submitting
+                  ? "Submitting…"
+                  : kycStatus === "PENDING"
+                  ? "Awaiting KYC Approval"
+                  : kycStatus !== "VERIFIED"
+                  ? "KYC Required — Verify Identity"
+                  : available < 1000
+                  ? "Insufficient Profit for Payout"
+                  : "Request Payout →"}
               </button>
             </form>
           )}

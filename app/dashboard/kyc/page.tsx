@@ -12,9 +12,12 @@ const statusConfig: Record<KycStatus, { label: string; color: string; icon: stri
   VERIFIED:   { label: "Verified",      color: "var(--green)",   icon: "✅", badge: "badge-green" },
 };
 
-const docSteps = [
-  { key: "kycIdUrl",      label: "Government ID",  desc: "Aadhaar, PAN, Passport, or Voter ID (front & back)", icon: "🪪" },
-  { key: "kycSelfieUrl",  label: "Selfie / Liveness", desc: "A clear photo of your face holding your ID", icon: "🤳" },
+const docTypeOptions = [
+  { value: "AADHAAR",         label: "Aadhaar Card" },
+  { value: "PAN",             label: "PAN Card" },
+  { value: "PASSPORT",        label: "Passport" },
+  { value: "VOTER_ID",        label: "Voter ID" },
+  { value: "DRIVING_LICENSE", label: "Driving License" },
 ];
 
 export default function KycPage() {
@@ -23,7 +26,11 @@ export default function KycPage() {
   const [kycNotes, setKycNotes] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ kycIdUrl: "", kycSelfieUrl: "" });
+  const [form, setForm] = useState({
+    kycIdUrl: "",
+    kycSelfieUrl: "",
+    kycDocType: "",
+  });
 
   useEffect(() => { fetchKyc(); }, []);
 
@@ -37,6 +44,7 @@ export default function KycPage() {
         setForm({
           kycIdUrl: data.kyc.kycIdUrl || "",
           kycSelfieUrl: data.kyc.kycSelfieUrl || "",
+          kycDocType: data.kyc.kycDocType || "",
         });
       }
     } catch {
@@ -50,6 +58,10 @@ export default function KycPage() {
     e.preventDefault();
     if (!form.kycIdUrl.trim() || !form.kycSelfieUrl.trim()) {
       toast("Please fill in both document fields.", "error");
+      return;
+    }
+    if (!form.kycDocType) {
+      toast("Please select your document type.", "error");
       return;
     }
     setSubmitting(true);
@@ -161,29 +173,63 @@ export default function KycPage() {
             </div>
             <p style={{ fontSize: "0.8125rem", color: "var(--text-3)", marginBottom: "1.25rem", lineHeight: 1.5 }}>
               {kycStatus === "PENDING"
-                ? "Your documents are being reviewed. You can update and resubmit if needed."
-                : "Enter the file name or URL of each document. In a full deployment, you would upload files directly."}
+                ? "Your documents are being reviewed. You may resubmit to update them."
+                : "Upload your government-issued ID and a selfie holding the document."}
             </p>
 
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-              {docSteps.map((doc) => (
-                <div key={doc.key} className="form-group">
-                  <label className="form-label">
-                    <span style={{ marginRight: "0.375rem" }}>{doc.icon}</span>
-                    {doc.label}
-                  </label>
-                  <input
-                    className="form-input"
-                    placeholder={`e.g. aadhaar_front.jpg or https://...`}
-                    value={form[doc.key as keyof typeof form]}
-                    onChange={(e) => setForm((f) => ({ ...f, [doc.key]: e.target.value }))}
-                    required
-                  />
-                  <span style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.25rem", display: "block" }}>
-                    {doc.desc}
-                  </span>
-                </div>
-              ))}
+              {/* Document Type */}
+              <div className="form-group">
+                <label className="form-label">
+                  📄 Document Type <span style={{ color: "var(--red)" }}>*</span>
+                </label>
+                <select
+                  className="form-input"
+                  value={form.kycDocType}
+                  onChange={(e) => setForm((f) => ({ ...f, kycDocType: e.target.value }))}
+                  required
+                  style={{ appearance: "none" }}
+                >
+                  <option value="">Select document type...</option>
+                  {docTypeOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Government ID */}
+              <div className="form-group">
+                <label className="form-label">
+                  🪪 Government ID (front &amp; back) <span style={{ color: "var(--red)" }}>*</span>
+                </label>
+                <input
+                  className="form-input"
+                  placeholder="File path or URL (e.g. aadhaar_front.jpg or https://...)"
+                  value={form.kycIdUrl}
+                  onChange={(e) => setForm((f) => ({ ...f, kycIdUrl: e.target.value }))}
+                  required
+                />
+                <span style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.25rem", display: "block" }}>
+                  Clear, readable photo of your selected document (both sides if applicable).
+                </span>
+              </div>
+
+              {/* Selfie */}
+              <div className="form-group">
+                <label className="form-label">
+                  🤳 Selfie holding your ID <span style={{ color: "var(--red)" }}>*</span>
+                </label>
+                <input
+                  className="form-input"
+                  placeholder="File path or URL (e.g. selfie_with_id.jpg or https://...)"
+                  value={form.kycSelfieUrl}
+                  onChange={(e) => setForm((f) => ({ ...f, kycSelfieUrl: e.target.value }))}
+                  required
+                />
+                <span style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.25rem", display: "block" }}>
+                  A clear photo of your face holding the document — no filters.
+                </span>
+              </div>
 
               <div
                 style={{
@@ -201,13 +247,35 @@ export default function KycPage() {
 
               <button
                 type="submit"
-                disabled={submitting || kycStatus === "PENDING"}
+                disabled={submitting}
                 className="btn btn-blue btn-sm"
                 style={{ alignSelf: "flex-start" }}
               >
-                {submitting ? "Submitting…" : kycStatus === "PENDING" ? "Resubmit Documents" : "Submit for Verification →"}
+                {submitting
+                  ? "Submitting…"
+                  : kycStatus === "PENDING"
+                  ? "Resubmit Documents"
+                  : "Submit for Verification →"}
               </button>
             </form>
+          </div>
+        )}
+
+        {/* Verified — show what was submitted */}
+        {kycStatus === "VERIFIED" && (
+          <div className="card" style={{ background: "rgba(22,163,74,0.05)", border: "1px solid rgba(34,197,94,0.2)" }}>
+            <div style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "1rem", color: "var(--green)" }}>
+              ✅ Verified Documents
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
+              <div style={{ fontSize: "0.8125rem", color: "var(--text-2)" }}>
+                <strong style={{ color: "var(--text-1)" }}>Document type: </strong>
+                {docTypeOptions.find(d => d.value === form.kycDocType)?.label || form.kycDocType || "—"}
+              </div>
+              <div style={{ fontSize: "0.8125rem", color: "var(--text-3)" }}>
+                Your identity has been verified. No further action required.
+              </div>
+            </div>
           </div>
         )}
       </div>

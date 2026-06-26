@@ -42,8 +42,8 @@ export default function RegisterPage() {
         return;
       }
 
-      toast("Account created! Please sign in.", "success");
-      setTimeout(() => router.push("/login"), 1000);
+      toast("Account created! Please check your email to verify your address.", "success");
+      setTimeout(() => router.push("/login"), 1500);
     } catch {
       toast("Something went wrong. Try again.", "error");
       setLoading(false);
@@ -108,8 +108,8 @@ export default function RegisterPage() {
 
         <p style={{ marginTop: "1rem", fontSize: "0.6875rem", color: "var(--text-3)", textAlign: "center", lineHeight: 1.5 }}>
           By creating an account, you agree to our{" "}
-          <span style={{ color: "var(--blue-400)" }}>Terms of Service</span> and{" "}
-          <span style={{ color: "var(--blue-400)" }}>Privacy Policy</span>.
+          <Link href="/terms" style={{ color: "var(--blue-400)", textDecoration: "none" }}>Terms of Service</Link> and{" "}
+          <Link href="/privacy" style={{ color: "var(--blue-400)", textDecoration: "none" }}>Privacy Policy</Link>.
         </p>
       </div>
     </div>

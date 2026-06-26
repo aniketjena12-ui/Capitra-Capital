@@ -89,6 +89,12 @@ export default function LoginPage() {
               "Sign In →"
             )}
           </button>
+
+          <div style={{ textAlign: "right" }}>
+            <Link href="/forgot-password" style={{ fontSize: "0.75rem", color: "var(--blue-400)", textDecoration: "none" }}>
+              Forgot your password?
+            </Link>
+          </div>
         </form>
 
         <div className="login-hint">

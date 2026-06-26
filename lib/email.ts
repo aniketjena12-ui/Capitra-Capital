@@ -162,3 +162,39 @@ export function emailDrawdownWarning(name: string, type: "daily" | "overall", pc
       </div>`,
   };
 }
+
+export function emailVerifyEmail(name: string, verifyUrl: string) {
+  return {
+    subject: "Verify your Capitra Capital email address",
+    html: `
+      <div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;background:#060810;color:#f0f4ff;padding:2rem;border-radius:12px">
+        <h2 style="color:#3b82f6">Verify Your Email 📧</h2>
+        <p style="color:#9ba8c0">Hi ${name},</p>
+        <p style="color:#9ba8c0">Thank you for registering with Capitra Capital. Please click the button below to verify your email address. This link expires in <strong style="color:#f0f4ff">24 hours</strong>.</p>
+        <a href="${verifyUrl}" style="display:inline-block;margin-top:1.5rem;padding:0.75rem 1.5rem;background:#2563eb;color:#fff;border-radius:6px;text-decoration:none;font-weight:600">
+          Verify Email Address →
+        </a>
+        <p style="margin-top:1.5rem;font-size:0.75rem;color:#5a6580">If you did not create an account, you can safely ignore this email.</p>
+        <p style="margin-top:0.5rem;font-size:0.75rem;color:#5a6580">Or copy this link: ${verifyUrl}</p>
+        <p style="margin-top:2rem;font-size:0.75rem;color:#5a6580">Capitra Capital — Built for disciplined traders.</p>
+      </div>`,
+  };
+}
+
+export function emailPasswordReset(name: string, resetUrl: string) {
+  return {
+    subject: "Reset your Capitra Capital password",
+    html: `
+      <div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;background:#060810;color:#f0f4ff;padding:2rem;border-radius:12px">
+        <h2 style="color:#3b82f6">Password Reset Request 🔐</h2>
+        <p style="color:#9ba8c0">Hi ${name},</p>
+        <p style="color:#9ba8c0">We received a request to reset your password. Click the button below to set a new password. This link expires in <strong style="color:#f0f4ff">1 hour</strong>.</p>
+        <a href="${resetUrl}" style="display:inline-block;margin-top:1.5rem;padding:0.75rem 1.5rem;background:#2563eb;color:#fff;border-radius:6px;text-decoration:none;font-weight:600">
+          Reset Password →
+        </a>
+        <p style="margin-top:1.5rem;font-size:0.75rem;color:#5a6580">If you did not request a password reset, you can safely ignore this email — your password has not been changed.</p>
+        <p style="margin-top:0.5rem;font-size:0.75rem;color:#5a6580">Or copy this link: ${resetUrl}</p>
+        <p style="margin-top:2rem;font-size:0.75rem;color:#5a6580">Capitra Capital — Built for disciplined traders.</p>
+      </div>`,
+  };
+}

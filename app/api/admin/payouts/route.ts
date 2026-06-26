@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail, emailPayoutApproved, emailPayoutRejected } from "@/lib/email";
-import { ApiError, withHandler, requireAdmin, ok } from "@/lib/api";
+import { ApiError, withHandler, requireAdmin, ok, parseBody } from "@/lib/api";
+import { adminPayoutActionSchema } from "@/lib/schemas";
 
 export const GET = withHandler(async () => {
   await requireAdmin();
@@ -30,16 +31,7 @@ export const GET = withHandler(async () => {
 export const POST = withHandler(async (req: NextRequest) => {
   await requireAdmin();
 
-  const body = await req.json();
-  const { payoutId, action } = body;
-
-  if (!payoutId || !action) {
-    throw ApiError.badRequest("Payout ID and action are required.");
-  }
-
-  if (action !== "APPROVE" && action !== "REJECT") {
-    throw ApiError.badRequest("Invalid action. Must be APPROVE or REJECT.");
-  }
+  const { payoutId, action } = await parseBody(req, adminPayoutActionSchema);
 
   const payout = await prisma.payoutRequest.findUnique({
     where: { id: payoutId },
@@ -68,18 +60,20 @@ export const POST = withHandler(async (req: NextRequest) => {
       },
     });
 
-    // Send email notification
-    const trader = await prisma.user.findUnique({ where: { id: payout.userId }, select: { name: true, email: true } });
+    const trader = await prisma.user.findUnique({
+      where: { id: payout.userId },
+      select: { name: true, email: true },
+    });
     if (trader?.email) {
       const { subject, html } = emailPayoutApproved(trader.name, payout.amount);
-      await sendEmail({ to: trader.email, subject, html }).catch(err => {
+      await sendEmail({ to: trader.email, subject, html }).catch((err) => {
         console.error("Failed to send payout approval email:", err);
       });
     }
 
     return ok({ success: true, message: "Payout request approved successfully." });
   } else {
-    // REJECT - refund user balance in a transaction
+    // REJECT — refund user balance atomically
     await prisma.$transaction([
       prisma.payoutRequest.update({
         where: { id: payoutId },
@@ -87,11 +81,7 @@ export const POST = withHandler(async (req: NextRequest) => {
       }),
       prisma.account.update({
         where: { id: payout.accountId },
-        data: {
-          balance: {
-            increment: payout.amount,
-          },
-        },
+        data: { balance: { increment: payout.amount } },
       }),
     ]);
 
@@ -104,11 +94,13 @@ export const POST = withHandler(async (req: NextRequest) => {
       },
     });
 
-    // Send email notification
-    const trader = await prisma.user.findUnique({ where: { id: payout.userId }, select: { name: true, email: true } });
+    const trader = await prisma.user.findUnique({
+      where: { id: payout.userId },
+      select: { name: true, email: true },
+    });
     if (trader?.email) {
       const { subject, html } = emailPayoutRejected(trader.name);
-      await sendEmail({ to: trader.email, subject, html }).catch(err => {
+      await sendEmail({ to: trader.email, subject, html }).catch((err) => {
         console.error("Failed to send payout rejection email:", err);
       });
     }

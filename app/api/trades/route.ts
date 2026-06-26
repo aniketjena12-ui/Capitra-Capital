@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkAccountRules } from "@/lib/rulesCheck";
-import { ApiError, withHandler, requireAuth, ok } from "@/lib/api";
+import { ApiError, withHandler, requireAuth, ok, parseBody } from "@/lib/api";
+import { tradeCreateSchema } from "@/lib/schemas";
 
 function parsePnl(pnlStr: string): number {
   let clean = pnlStr.replace(/[₹\s,]/g, "");
@@ -31,12 +32,7 @@ export const GET = withHandler(async () => {
 export const POST = withHandler(async (req: NextRequest) => {
   const { userId } = await requireAuth();
 
-  const body = await req.json();
-  const { date, symbol, direction, entry, exit, pnl, notes } = body;
-
-  if (!date || !symbol || !direction || !entry || !exit || !pnl) {
-    throw ApiError.badRequest("Missing required fields.");
-  }
+  const { date, symbol, direction, entry, exit, pnl, notes } = await parseBody(req, tradeCreateSchema);
 
   // Get the most recent account
   const currentAccount = await prisma.account.findFirst({

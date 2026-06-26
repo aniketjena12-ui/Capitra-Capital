@@ -9,6 +9,7 @@
  *   - requireAdmin() — like requireAuth() but also checks for admin email
  *   - ok()           — typed success response helper
  *   - withHandler()  — wraps a handler with try/catch, converts ApiError → JSON
+ *   - parseBody()    — parse + Zod-validate a request body in one call
  *
  * Usage in a route file:
  *
@@ -22,6 +23,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions, ADMIN_EMAIL } from "@/lib/auth";
+import { ZodSchema } from "zod";
 
 // ─── Error Codes ──────────────────────────────────────────────────────────────
 
@@ -142,6 +144,29 @@ export function ok<T extends Record<string, unknown>>(
  */
 export function created<T extends Record<string, unknown>>(data: T): NextResponse {
   return ok(data, 201);
+}
+
+/**
+ * Parses the request body as JSON and validates it against a Zod schema.
+ * Throws ApiError(400) with the first validation error message on failure.
+ *
+ * @example
+ *   const { email, password } = await parseBody(req, registerSchema);
+ */
+export async function parseBody<T>(req: NextRequest, schema: ZodSchema<T>): Promise<T> {
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    throw ApiError.badRequest("Request body is missing or not valid JSON.");
+  }
+
+  const result = schema.safeParse(body);
+  if (!result.success) {
+    const firstError = result.error.issues[0];
+    throw ApiError.badRequest(firstError?.message ?? "Invalid request data.");
+  }
+  return result.data;
 }
 
 // ─── withHandler ─────────────────────────────────────────────────────────────

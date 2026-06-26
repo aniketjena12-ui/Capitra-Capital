@@ -17,6 +17,15 @@ model User {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
+  // Email verification
+  emailVerified         DateTime?       // null = unverified
+  emailVerifyToken      String?         @unique
+  emailVerifyExpiry     DateTime?
+
+  // Password reset
+  passwordResetToken    String?         @unique
+  passwordResetExpiry   DateTime?
+
   // Bank details for payouts
   accountName    String?         @default("Demo Trader")
   accountNo      String?         @default("1234567890")
@@ -31,8 +40,9 @@ model User {
 
   // KYC Verification
   kycStatus      String          @default("UNVERIFIED") // "UNVERIFIED", "PENDING", "VERIFIED"
-  kycIdUrl       String?         // Government ID image URL / path
-  kycSelfieUrl   String?         // Selfie image URL / path
+  kycIdUrl       String?         // Government ID image URL
+  kycSelfieUrl   String?         // Selfie image URL
+  kycDocType     String?         // "AADHAAR", "PAN", "PASSPORT", "VOTER_ID", "DRIVING_LICENSE"
   kycNotes       String?         // Admin notes
 
   // Relations

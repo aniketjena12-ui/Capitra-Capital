@@ -1,10 +1,11 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { ApiError, withHandler, requireAuth, ok } from "@/lib/api";
+import { ApiError, withHandler, requireAuth, ok, parseBody } from "@/lib/api";
+import { payoutRequestSchema } from "@/lib/schemas";
 
 export const GET = withHandler(async () => {
   const { userId } = await requireAuth();
-  
+
   const [payouts, activeAccount] = await Promise.all([
     prisma.payoutRequest.findMany({
       where: { userId },
@@ -20,12 +21,28 @@ export const GET = withHandler(async () => {
 
 export const POST = withHandler(async (req: NextRequest) => {
   const { userId } = await requireAuth();
-  const body = await req.json();
-  const { amount, method } = body;
 
-  if (!amount || !method) {
-    throw ApiError.badRequest("Amount and method are required.");
+  const { amount, method } = await parseBody(req, payoutRequestSchema);
+
+  // ── KYC Gate ────────────────────────────────────────────────────────────────
+  // Require verified KYC before any payout can be requested.
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { kycStatus: true },
+  });
+
+  if (!user) {
+    throw ApiError.notFound("User not found.");
   }
+
+  if (user.kycStatus !== "VERIFIED") {
+    const kycMsg =
+      user.kycStatus === "PENDING"
+        ? "Your KYC is currently under review. Payouts will be available once your identity is verified."
+        : "You must complete KYC verification before requesting a payout. Go to the KYC page in your dashboard.";
+    throw ApiError.forbidden(kycMsg);
+  }
+  // ────────────────────────────────────────────────────────────────────────────
 
   const activeAccount = await prisma.account.findFirst({
     where: { userId, status: "ACTIVE" },
@@ -35,29 +52,26 @@ export const POST = withHandler(async (req: NextRequest) => {
     throw ApiError.notFound("No active challenge account found.");
   }
 
-  const val = Number(amount);
   const profit = activeAccount.balance - activeAccount.initialBalance;
   const available = profit > 0 ? profit * 0.8 : 0;
 
-  if (val < 1000) {
-    throw ApiError.badRequest("Minimum payout is ₹1,000.");
-  }
-
-  if (val > available) {
-    throw ApiError.badRequest("Amount exceeds available profit.");
+  if (amount > available) {
+    throw ApiError.badRequest(
+      `Amount exceeds available profit. You can withdraw up to ₹${available.toLocaleString("en-IN")}.`
+    );
   }
 
   // Deduct the payout amount from the account balance
   await prisma.account.update({
     where: { id: activeAccount.id },
-    data: { balance: activeAccount.balance - val },
+    data: { balance: activeAccount.balance - amount },
   });
 
   const payout = await prisma.payoutRequest.create({
     data: {
       userId,
       accountId: activeAccount.id,
-      amount: val,
+      amount,
       method,
       status: "PENDING",
     },
@@ -67,7 +81,7 @@ export const POST = withHandler(async (req: NextRequest) => {
     data: {
       userId,
       title: "Payout Request Submitted",
-      message: `Your withdrawal request of ₹${val.toLocaleString("en-IN")} via ${method} has been submitted for review.`,
+      message: `Your withdrawal request of ₹${amount.toLocaleString("en-IN")} via ${method} has been submitted for review.`,
       type: "INFO",
     },
   });

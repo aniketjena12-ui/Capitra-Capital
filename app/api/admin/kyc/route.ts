@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail, emailKycVerified } from "@/lib/email";
-import { ApiError, withHandler, requireAdmin, ok } from "@/lib/api";
+import { ApiError, withHandler, requireAdmin, ok, parseBody } from "@/lib/api";
+import { adminKycActionSchema } from "@/lib/schemas";
 
 // GET — list all users with KYC data (admin only)
 export const GET = withHandler(async (req: NextRequest) => {
@@ -19,6 +20,7 @@ export const GET = withHandler(async (req: NextRequest) => {
       kycStatus: true,
       kycIdUrl: true,
       kycSelfieUrl: true,
+      kycDocType: true,
       kycNotes: true,
       createdAt: true,
     },
@@ -32,10 +34,7 @@ export const GET = withHandler(async (req: NextRequest) => {
 export const POST = withHandler(async (req: NextRequest) => {
   await requireAdmin();
 
-  const { userId, action, notes } = await req.json();
-  if (!userId || !["APPROVE", "REJECT"].includes(action)) {
-    throw ApiError.badRequest("Invalid request.");
-  }
+  const { userId, action, notes } = await parseBody(req, adminKycActionSchema);
 
   const newStatus = action === "APPROVE" ? "VERIFIED" : "UNVERIFIED";
   await prisma.user.update({
@@ -57,11 +56,13 @@ export const POST = withHandler(async (req: NextRequest) => {
   });
 
   if (action === "APPROVE") {
-    // Send email to trader
-    const trader = await prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true } });
+    const trader = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true },
+    });
     if (trader?.email) {
       const { subject, html } = emailKycVerified(trader.name);
-      await sendEmail({ to: trader.email, subject, html }).catch(err => {
+      await sendEmail({ to: trader.email, subject, html }).catch((err) => {
         console.error("Failed to send KYC approval email:", err);
       });
     }
