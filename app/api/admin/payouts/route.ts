@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sendEmail, emailPayoutApproved, emailPayoutRejected } from "@/lib/email";
 
 const ADMIN_EMAIL = "admin@capitracapital.com";
 
@@ -77,6 +78,22 @@ export async function POST(req: NextRequest) {
         data: { status: "PAID" },
       });
 
+      await prisma.notification.create({
+        data: {
+          userId: payout.userId,
+          title: "Withdrawal Approved! 🎉",
+          message: `Your withdrawal request of ₹${payout.amount.toLocaleString("en-IN")} via ${payout.method} has been approved. Funds are on the way.`,
+          type: "SUCCESS",
+        },
+      });
+
+      // Send email notification
+      const trader = await prisma.user.findUnique({ where: { id: payout.userId }, select: { name: true, email: true } });
+      if (trader?.email) {
+        const { subject, html } = emailPayoutApproved(trader.name, payout.amount);
+        await sendEmail({ to: trader.email, subject, html });
+      }
+
       return NextResponse.json({ success: true, message: "Payout request approved successfully." });
     } else {
       // REJECT - refund user balance in a transaction
@@ -94,6 +111,22 @@ export async function POST(req: NextRequest) {
           },
         }),
       ]);
+
+      await prisma.notification.create({
+        data: {
+          userId: payout.userId,
+          title: "Withdrawal Rejected",
+          message: `Your withdrawal request of ₹${payout.amount.toLocaleString("en-IN")} has been rejected. The full amount has been refunded to your account balance.`,
+          type: "WARNING",
+        },
+      });
+
+      // Send email notification
+      const trader = await prisma.user.findUnique({ where: { id: payout.userId }, select: { name: true, email: true } });
+      if (trader?.email) {
+        const { subject, html } = emailPayoutRejected(trader.name);
+        await sendEmail({ to: trader.email, subject, html });
+      }
 
       return NextResponse.json({ success: true, message: "Payout request rejected and balance refunded." });
     }

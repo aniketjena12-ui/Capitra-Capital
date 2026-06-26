@@ -1,6 +1,7 @@
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
@@ -28,11 +29,18 @@ model User {
   payoutNotif    Boolean         @default(true)
   newsNotif      Boolean         @default(false)
 
+  // KYC Verification
+  kycStatus      String          @default("UNVERIFIED") // "UNVERIFIED", "PENDING", "VERIFIED"
+  kycIdUrl       String?         // Government ID image URL / path
+  kycSelfieUrl   String?         // Selfie image URL / path
+  kycNotes       String?         // Admin notes
+
   // Relations
   accounts       Account[]
   trades         Trade[]
   payoutRequests PayoutRequest[]
   payments       Payment[]
+  notifications  Notification[]
 }
 
 model Account {
@@ -76,7 +84,7 @@ model PayoutRequest {
   account        Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
   amount         Float
   method         String          // "NEFT", "IMPS", "UPI"
-  status         String          @default("PENDING") // "PENDING", "PAID"
+  status         String          @default("PENDING") // "PENDING", "PAID", "REJECTED"
   createdAt      DateTime        @default(now())
 }
 
@@ -88,5 +96,16 @@ model Payment {
   status         String          @default("COMPLETED")
   userId         String
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime        @default(now())
+}
+
+model Notification {
+  id             String          @id @default(uuid())
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String
+  message        String
+  type           String          @default("INFO") // "INFO", "SUCCESS", "WARNING", "ERROR"
+  read           Boolean         @default(false)
   createdAt      DateTime        @default(now())
 }

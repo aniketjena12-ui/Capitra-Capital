@@ -9,6 +9,7 @@ const sidebarNav = [
   { href: "/dashboard",          icon: "📊", label: "Overview"   },
   { href: "/dashboard/journal",  icon: "📋", label: "Journal"    },
   { href: "/dashboard/payouts",  icon: "💸", label: "Payouts"    },
+  { href: "/dashboard/kyc",      icon: "🪪", label: "KYC"        },
   { href: "/dashboard/settings", icon: "⚙️", label: "Settings"   },
 ];
 

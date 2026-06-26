@@ -79,6 +79,15 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    await prisma.notification.create({
+      data: {
+        userId,
+        title: "Payout Request Submitted",
+        message: `Your withdrawal request of ₹${val.toLocaleString("en-IN")} via ${method} has been submitted for review.`,
+        type: "INFO",
+      },
+    });
+
     return NextResponse.json({ success: true, payout });
   } catch (error) {
     console.error("POST payout error:", error);

@@ -97,9 +97,9 @@ export default function LoginPage() {
         </div>
 
         <div style={{ marginTop: "1.25rem", textAlign: "center", fontSize: "0.8125rem", color: "var(--text-3)" }}>
-          Don't have an account?{" "}
-          <Link href="/challenges" style={{ color: "var(--blue-400)", textDecoration: "none" }}>
-            Start a challenge
+          Don&apos;t have an account?{" "}
+          <Link href="/register" style={{ color: "var(--blue-400)", textDecoration: "none" }}>
+            Create one free
           </Link>
         </div>
       </div>

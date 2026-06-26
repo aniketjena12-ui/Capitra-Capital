@@ -30,6 +30,16 @@ async function main() {
     },
   });
 
+  // Welcome notification (mirrors what the register route creates)
+  await prisma.notification.create({
+    data: {
+      userId: user.id,
+      title: "Welcome to Capitra Capital!",
+      message: "Congratulations on signing up. Choose a challenge evaluation tier and start trading.",
+      type: "SUCCESS",
+    },
+  });
+
   // Create active trading account
   const account = await prisma.account.create({
     data: {

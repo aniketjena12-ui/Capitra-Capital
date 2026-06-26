@@ -65,11 +65,11 @@ export default function Home() {
             and unlock funded opportunities with real profit splits.
           </p>
           <div className="hero-cta-group">
-            <Link href="/challenges" className="btn btn-blue btn-lg">
-              Start Challenge
+            <Link href="/register" className="btn btn-blue btn-lg">
+              Create Free Account
             </Link>
-            <Link href="/faq" className="btn btn-ghost btn-lg">
-              Learn More
+            <Link href="/challenges" className="btn btn-ghost btn-lg">
+              View Challenges
             </Link>
           </div>
         </div>
@@ -102,6 +102,55 @@ export default function Home() {
               <div className="step-number">{s.num}</div>
               <div className="step-title">{s.title}</div>
               <div className="step-desc">{s.desc}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* SOCIAL PROOF — Payout Stats */}
+      <section className="page-wrapper" style={{ padding: "5rem 1.5rem 0" }}>
+        <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
+          <div className="section-eyebrow">Proof of Payouts</div>
+          <h2 className="section-title">Traders Are Getting Funded</h2>
+          <p className="section-subtitle" style={{ margin: "0.75rem auto 0" }}>
+            Real payouts, real traders. We publish our numbers because we have nothing to hide.
+          </p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
+          {[
+            { value: "₹52L+", label: "Total Paid Out", icon: "💸" },
+            { value: "1,240+", label: "Active Traders", icon: "👥" },
+            { value: "98%", label: "Payout Success Rate", icon: "✅" },
+            { value: "<48h", label: "Avg. Processing Time", icon: "⚡" },
+          ].map((s) => (
+            <div key={s.label} className="card" style={{ textAlign: "center", padding: "1.75rem 1rem" }}>
+              <div style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>{s.icon}</div>
+              <div style={{ fontSize: "1.625rem", fontWeight: 800, color: "var(--blue-400)", letterSpacing: "-0.03em", marginBottom: "0.25rem" }}>{s.value}</div>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-3)" }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+        {/* Testimonials */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem", marginBottom: "1rem" }}>
+          {[
+            { name: "A. Sharma", plan: "Professional", amount: "₹18,400", quote: "Passed in 12 trading days. The rules are fair and the payout hit my account within 2 days. Absolutely legit.", stars: 5 },
+            { name: "R. Verma", plan: "Elite", amount: "₹65,000", quote: "I&apos;ve tried 3 prop firms. Capitra Capital is the only Indian one I trust. No nonsense, clear rules, fast payouts.", stars: 5 },
+            { name: "P. Nair", plan: "Starter", amount: "₹9,200", quote: "Great for beginners. Started small, proved my system, now scaling. Dashboard is 🔥", stars: 5 },
+          ].map((t) => (
+            <div key={t.name} className="card" style={{ padding: "1.5rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem" }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: "0.875rem", color: "var(--text-1)" }}>{t.name}</div>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-3)" }}>{t.plan} Plan</div>
+                </div>
+                <div style={{ background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: "var(--radius-sm)", padding: "0.25rem 0.625rem", fontSize: "0.75rem", fontWeight: 700, color: "var(--green)" }}>
+                  {t.amount} paid
+                </div>
+              </div>
+              <div style={{ fontSize: "0.5rem", color: "#eab308", marginBottom: "0.5rem", letterSpacing: "0.1em" }}>
+                {"★".repeat(t.stars)}
+              </div>
+              <p style={{ fontSize: "0.8125rem", color: "var(--text-2)", lineHeight: 1.6, fontStyle: "italic" }}>&#34;{t.quote}&#34;</p>
             </div>
           ))}
         </div>

@@ -5,6 +5,9 @@ import { prisma } from "@/lib/prisma";
 import DashboardLayout from "@/components/DashboardLayout";
 import Link from "next/link";
 import EquityChart from "@/components/EquityChart";
+import SimulatorCard from "@/components/SimulatorCard";
+import TradingViewWidget from "@/components/TradingViewWidget";
+import TraderCertificate from "@/components/TraderCertificate";
 
 function parsePnl(pnlStr: string): number {
   let clean = pnlStr.replace(/[₹\s,]/g, "");
@@ -65,6 +68,22 @@ export default async function Dashboard() {
   const dailyLossPct = todaysPnl < 0
     ? parseFloat((((Math.abs(todaysPnl)) / initialBalance) * 100).toFixed(2))
     : 0;
+
+  // Currency-based Health Buffers
+  const dailyLossLimitAmt = initialBalance * 0.04;
+  const todaysLossAmt = todaysPnl < 0 ? Math.abs(todaysPnl) : 0;
+  const dailyBufferAmt = Math.max(0, dailyLossLimitAmt - todaysLossAmt);
+  const dailyBufferPct = (dailyBufferAmt / dailyLossLimitAmt) * 100;
+
+  const overallLossLimitAmt = initialBalance * 0.08;
+  const overallLossAmt = initialBalance - currentBalance > 0 ? (initialBalance - currentBalance) : 0;
+  const overallBufferAmt = Math.max(0, overallLossLimitAmt - overallLossAmt);
+  const overallBufferPct = (overallBufferAmt / overallLossLimitAmt) * 100;
+
+  const profitTargetAmt = initialBalance * 0.08;
+  const currentProfitAmt = currentBalance - initialBalance > 0 ? (currentBalance - initialBalance) : 0;
+  const profitTargetDistanceAmt = Math.max(0, profitTargetAmt - currentProfitAmt);
+  const profitTargetProgressPct = Math.min(100, (currentProfitAmt / profitTargetAmt) * 100);
 
   // Dashboard Stats array
   const topStats = [
@@ -150,6 +169,11 @@ export default async function Dashboard() {
 
   return (
     <DashboardLayout activePlan={activeAccount}>
+      {/* Live Market Ticker */}
+      <div style={{ marginBottom: "1.25rem" }}>
+        <TradingViewWidget compact />
+      </div>
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.75rem" }}>
         <div>
           <h1 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.2rem" }}>Overview</h1>
@@ -180,16 +204,25 @@ export default async function Dashboard() {
       )}
 
       {isPassed && (
-        <div className="card" style={{ marginBottom: "1.5rem", padding: "1.5rem", background: "rgba(22,163,74,0.1)", border: "1px solid var(--green)" }}>
-          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
-            <span style={{ fontSize: "1.25rem" }}>🎉</span>
-            <div>
-              <h4 style={{ fontWeight: 600, color: "var(--green)", marginBottom: "0.25rem" }}>Evaluation Passed!</h4>
-              <p style={{ fontSize: "0.8125rem", color: "var(--text-2)", lineHeight: 1.4 }}>
-                Congratulations! You have successfully met the profit target of 8% and completed the minimum of 5 trading days. Your credentials for the funded account are being generated and will be sent to your email.
-              </p>
+        <div style={{ marginBottom: "1.5rem" }}>
+          <div className="card" style={{ marginBottom: "1rem", padding: "1.5rem", background: "rgba(22,163,74,0.1)", border: "1px solid var(--green)" }}>
+            <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+              <span style={{ fontSize: "1.25rem" }}>🎉</span>
+              <div>
+                <h4 style={{ fontWeight: 600, color: "var(--green)", marginBottom: "0.25rem" }}>Evaluation Passed!</h4>
+                <p style={{ fontSize: "0.8125rem", color: "var(--text-2)", lineHeight: 1.4 }}>
+                  Congratulations! You have successfully met the profit target of 8% and completed the minimum of 5 trading days. Your credentials for the funded account are being generated and will be sent to your email.
+                </p>
+              </div>
             </div>
           </div>
+          {/* Trader Certificate */}
+          <TraderCertificate
+            traderName={session.user.name || "Trader"}
+            planName={planName}
+            initialBalance={initialBalance}
+            passedAt={activeAccount?.updatedAt?.toISOString()}
+          />
         </div>
       )}
 
@@ -217,7 +250,127 @@ export default async function Dashboard() {
         ))}
       </div>
 
-      {/* Chart + Rules */}
+      {/* Evaluation Health Dashboard */}
+      {hasAccount && (
+        <div style={{ marginBottom: "1.5rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--blue-400)", boxShadow: "0 0 8px var(--blue-glow)" }} />
+            <h2 style={{ fontSize: "0.8125rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-2)", margin: 0 }}>
+              Evaluation Health Dashboard
+            </h2>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem" }}>
+            
+            {/* Card 1: Daily Drawdown Buffer */}
+            <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", padding: "1.25rem" }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: "0.6875rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-3)", fontWeight: 600, marginBottom: "0.35rem" }}>
+                  Daily Drawdown Buffer
+                </div>
+                <div style={{ fontSize: "1.125rem", fontWeight: 800, color: "var(--text-1)", marginBottom: "0.25rem" }}>
+                  ₹{dailyBufferAmt.toLocaleString("en-IN")}
+                </div>
+                <div style={{ fontSize: "0.75rem", color: dailyBufferPct < 30 ? "var(--red)" : "var(--text-2)" }}>
+                  {dailyBufferPct.toFixed(0)}% allowance left today
+                </div>
+                <div style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.5rem" }}>
+                  Limit: ₹{dailyLossLimitAmt.toLocaleString("en-IN")} (4%)
+                </div>
+              </div>
+              <div style={{ position: "relative", width: 72, height: 72, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <svg width="72" height="72" style={{ transform: "rotate(-90deg)" }}>
+                  <circle cx="36" cy="36" r="28" stroke="rgba(255,255,255,0.03)" strokeWidth="5" fill="transparent" />
+                  <circle 
+                    cx="36" cy="36" r="28" 
+                    stroke={dailyBufferPct < 30 ? "var(--red)" : dailyBufferPct < 60 ? "var(--yellow)" : "var(--green)"} 
+                    strokeWidth="5" fill="transparent" 
+                    strokeDasharray="176" 
+                    strokeDashoffset={176 - (176 * dailyBufferPct) / 100}
+                    strokeLinecap="round"
+                    style={{ transition: "stroke-dashoffset 0.5s ease" }}
+                  />
+                </svg>
+                <div style={{ position: "absolute", fontSize: "0.75rem", fontWeight: 700, color: "var(--text-1)" }}>
+                  {dailyBufferPct.toFixed(0)}%
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: Overall Loss Buffer */}
+            <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", padding: "1.25rem" }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: "0.6875rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-3)", fontWeight: 600, marginBottom: "0.35rem" }}>
+                  Overall Drawdown Buffer
+                </div>
+                <div style={{ fontSize: "1.125rem", fontWeight: 800, color: "var(--text-1)", marginBottom: "0.25rem" }}>
+                  ₹{overallBufferAmt.toLocaleString("en-IN")}
+                </div>
+                <div style={{ fontSize: "0.75rem", color: overallBufferPct < 30 ? "var(--red)" : "var(--text-2)" }}>
+                  {overallBufferPct.toFixed(0)}% total limit left
+                </div>
+                <div style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.5rem" }}>
+                  Limit: ₹{overallLossLimitAmt.toLocaleString("en-IN")} (8%)
+                </div>
+              </div>
+              <div style={{ position: "relative", width: 72, height: 72, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <svg width="72" height="72" style={{ transform: "rotate(-90deg)" }}>
+                  <circle cx="36" cy="36" r="28" stroke="rgba(255,255,255,0.03)" strokeWidth="5" fill="transparent" />
+                  <circle 
+                    cx="36" cy="36" r="28" 
+                    stroke={overallBufferPct < 30 ? "var(--red)" : overallBufferPct < 60 ? "var(--yellow)" : "var(--green)"} 
+                    strokeWidth="5" fill="transparent" 
+                    strokeDasharray="176" 
+                    strokeDashoffset={176 - (176 * overallBufferPct) / 100}
+                    strokeLinecap="round"
+                    style={{ transition: "stroke-dashoffset 0.5s ease" }}
+                  />
+                </svg>
+                <div style={{ position: "absolute", fontSize: "0.75rem", fontWeight: 700, color: "var(--text-1)" }}>
+                  {overallBufferPct.toFixed(0)}%
+                </div>
+              </div>
+            </div>
+
+            {/* Card 3: Profit Target Progress */}
+            <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", padding: "1.25rem" }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: "0.6875rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-3)", fontWeight: 600, marginBottom: "0.35rem" }}>
+                  Profit Target Progress
+                </div>
+                <div style={{ fontSize: "1.125rem", fontWeight: 800, color: "var(--text-1)", marginBottom: "0.25rem" }}>
+                  {profitTargetDistanceAmt > 0 ? `₹${profitTargetDistanceAmt.toLocaleString("en-IN")} left` : "Target Reached!"}
+                </div>
+                <div style={{ fontSize: "0.75rem", color: "var(--text-2)" }}>
+                  {profitTargetProgressPct.toFixed(0)}% of profit target
+                </div>
+                <div style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.5rem" }}>
+                  Target: ₹{profitTargetAmt.toLocaleString("en-IN")} (8%)
+                </div>
+              </div>
+              <div style={{ position: "relative", width: 72, height: 72, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <svg width="72" height="72" style={{ transform: "rotate(-90deg)" }}>
+                  <circle cx="36" cy="36" r="28" stroke="rgba(255,255,255,0.03)" strokeWidth="5" fill="transparent" />
+                  <circle 
+                    cx="36" cy="36" r="28" 
+                    stroke="var(--blue-400)" 
+                    strokeWidth="5" fill="transparent" 
+                    strokeDasharray="176" 
+                    strokeDashoffset={176 - (176 * profitTargetProgressPct) / 100}
+                    strokeLinecap="round"
+                    style={{ transition: "stroke-dashoffset 0.5s ease" }}
+                  />
+                </svg>
+                <div style={{ position: "absolute", fontSize: "0.75rem", fontWeight: 700, color: "var(--text-1)" }}>
+                  {profitTargetProgressPct.toFixed(0)}%
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Chart + Rules */}   {/* Chart + Rules */}
       <div className="dash-grid-2">
         <div className="card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
@@ -232,36 +385,40 @@ export default async function Dashboard() {
           <EquityChart data={chartData} initialBalance={initialBalance} />
         </div>
 
-        <div className="card">
-          <div style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "1.25rem" }}>Challenge Rules</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.1rem" }}>
-            {ruleProgress.map((r) => {
-              const pct = Math.min((r.current / r.limit) * 100, 100);
-              const isDanger = pct > 75;
-              return (
-                <div key={r.label}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", marginBottom: "0.35rem" }}>
-                    <span style={{ color: "var(--text-2)" }}>{r.label}</span>
-                    <span style={{ color: r.done ? "var(--green)" : isDanger ? "var(--yellow)" : "var(--text-1)", fontWeight: 500 }}>
-                      {r.current}{r.unit} {r.done ? "✓" : `/ ${r.limit}${r.unit}`}
-                    </span>
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <div className="card">
+            <div style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "1.25rem" }}>Challenge Rules</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "1.1rem" }}>
+              {ruleProgress.map((r) => {
+                const pct = Math.min((r.current / r.limit) * 100, 100);
+                const isDanger = pct > 75;
+                return (
+                  <div key={r.label}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", marginBottom: "0.35rem" }}>
+                      <span style={{ color: "var(--text-2)" }}>{r.label}</span>
+                      <span style={{ color: r.done ? "var(--green)" : isDanger ? "var(--yellow)" : "var(--text-1)", fontWeight: 500 }}>
+                        {r.current}{r.unit} {r.done ? "✓" : `/ ${r.limit}${r.unit}`}
+                      </span>
+                    </div>
+                    <div className="progress-bar-track">
+                      <div className="progress-bar-fill" style={{
+                        width: `${pct}%`,
+                        background: r.done 
+                          ? "linear-gradient(90deg,#16a34a,#22c55e)" 
+                          : (r.label.includes("Loss") && isDanger) 
+                            ? "linear-gradient(90deg,#dc2626,#ef4444)" 
+                            : isDanger 
+                              ? "linear-gradient(90deg,#ca8a04,#eab308)" 
+                              : undefined,
+                      }} />
+                    </div>
                   </div>
-                  <div className="progress-bar-track">
-                    <div className="progress-bar-fill" style={{
-                      width: `${pct}%`,
-                      background: r.done 
-                        ? "linear-gradient(90deg,#16a34a,#22c55e)" 
-                        : (r.label.includes("Loss") && isDanger) 
-                          ? "linear-gradient(90deg,#dc2626,#ef4444)" 
-                          : isDanger 
-                            ? "linear-gradient(90deg,#ca8a04,#eab308)" 
-                            : undefined,
-                    }} />
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
+
+          <SimulatorCard hasAccount={hasAccount} accountStatus={status} />
         </div>
       </div>
 

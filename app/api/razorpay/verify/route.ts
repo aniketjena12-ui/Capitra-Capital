@@ -82,6 +82,15 @@ export async function POST(req: NextRequest) {
       }),
     ]);
 
+    await prisma.notification.create({
+      data: {
+        userId,
+        title: "Challenge Account Activated!",
+        message: `Your ₹${initialBalance.toLocaleString("en-IN")} ${planName} evaluation account has been successfully provisioned.`,
+        type: "SUCCESS",
+      },
+    });
+
     return NextResponse.json({
       success: true,
       paymentId: razorpay_payment_id,

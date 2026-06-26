@@ -33,6 +33,15 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    await prisma.notification.create({
+      data: {
+        userId: user.id,
+        title: "Welcome to Capitra Capital!",
+        message: "Congratulations on signing up. Choose a challenge evaluation tier and start trading.",
+        type: "SUCCESS",
+      },
+    });
+
     return NextResponse.json(
       { message: "Account created successfully.", userId: user.id },
       { status: 201 }

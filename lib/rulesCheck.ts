@@ -75,6 +75,17 @@ export async function checkAccountRules(accountId: string) {
       where: { id: accountId },
       data: { status: newStatus },
     });
+
+    await prisma.notification.create({
+      data: {
+        userId: account.userId,
+        title: newStatus === "PASSED" ? "Evaluation Passed!" : "Evaluation Failed",
+        message: newStatus === "PASSED"
+          ? `Congratulations! Your ${account.planName} account has passed evaluation rules. You are now eligible for live payouts.`
+          : `Your ${account.planName} account has violated rules (drawdown) and failed evaluation.`,
+        type: newStatus === "PASSED" ? "SUCCESS" : "ERROR",
+      },
+    });
   }
 
   return {

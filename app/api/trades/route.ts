@@ -104,9 +104,70 @@ export async function POST(req: NextRequest) {
       await checkAccountRules(activeAccount.id);
     }
 
+    await prisma.notification.create({
+      data: {
+        userId,
+        title: "Trade Logged",
+        message: `${direction} ${symbol} at ${entry} closed with P&L of ${pnl}.`,
+        type: isProfit ? "SUCCESS" : "ERROR",
+      },
+    });
+
     return NextResponse.json({ success: true, trade });
   } catch (error) {
     console.error("POST trade error:", error);
     return NextResponse.json({ error: "Failed to save trade." }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const userId = (session.user as any).id;
+    const { searchParams } = new URL(req.url);
+    const tradeId = searchParams.get("id");
+
+    if (!tradeId) {
+      return NextResponse.json({ error: "Trade ID is required." }, { status: 400 });
+    }
+
+    // Fetch the trade and verify ownership
+    const trade = await prisma.trade.findUnique({ where: { id: tradeId } });
+
+    if (!trade) {
+      return NextResponse.json({ error: "Trade not found." }, { status: 404 });
+    }
+
+    if (trade.userId !== userId) {
+      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+    }
+
+    // Reverse the PnL on the linked account
+    if (trade.accountId) {
+      const account = await prisma.account.findUnique({ where: { id: trade.accountId } });
+      if (account && account.status === "ACTIVE") {
+        const pnlValue = parsePnl(trade.pnl);
+        await prisma.account.update({
+          where: { id: trade.accountId },
+          data: { balance: account.balance - pnlValue },
+        });
+      }
+    }
+
+    await prisma.trade.delete({ where: { id: tradeId } });
+
+    // Re-run rules check to keep account status accurate
+    if (trade.accountId) {
+      await checkAccountRules(trade.accountId).catch(() => {});
+    }
+
+    return NextResponse.json({ success: true, message: "Trade deleted." });
+  } catch (error) {
+    console.error("DELETE trade error:", error);
+    return NextResponse.json({ error: "Failed to delete trade." }, { status: 500 });
   }
 }

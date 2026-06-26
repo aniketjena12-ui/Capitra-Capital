@@ -44,6 +44,33 @@ export default function CheckoutPage({
   const { toast } = useToast();
   const [paying, setPaying] = useState(false);
   const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [promoCode, setPromoCode] = useState("");
+  const [promoApplied, setPromoApplied] = useState(false);
+  const [promoError, setPromoError] = useState("");
+  const [discount, setDiscount] = useState(0);
+
+  // Demo promo codes — swap with an API call in production
+  const PROMO_CODES: Record<string, number> = {
+    "CAPITRA10": 10,
+    "WELCOME20": 20,
+    "LAUNCH25": 25,
+  };
+
+  function applyPromo() {
+    const code = promoCode.trim().toUpperCase();
+    if (!code) return;
+    const pct = PROMO_CODES[code];
+    if (pct) {
+      setDiscount(pct);
+      setPromoApplied(true);
+      setPromoError("");
+      toast(`Promo code applied! ${pct}% discount activated.`, "success");
+    } else {
+      setPromoError("Invalid or expired promo code.");
+      setPromoApplied(false);
+      setDiscount(0);
+    }
+  }
 
   useEffect(() => {
     const script = document.createElement("script");
@@ -53,6 +80,9 @@ export default function CheckoutPage({
     return () => { document.body.removeChild(script); };
   }, []);
 
+  const discountedPrice = Math.round(plan.price * (1 - discount / 100));
+  const totalWithGst = Math.round(discountedPrice * 1.18);
+
   async function handlePayment() {
     if (!scriptLoaded) { toast("Payment gateway loading… please wait.", "info"); return; }
     setPaying(true);
@@ -61,7 +91,7 @@ export default function CheckoutPage({
       const orderRes = await fetch("/api/razorpay/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: plan.price, planName: plan.name }),
+        body: JSON.stringify({ amount: discountedPrice, planName: plan.name }),
       });
       const order = await orderRes.json();
       if (!orderRes.ok) { toast(order.error || "Failed to create order.", "error"); setPaying(false); return; }
@@ -98,6 +128,7 @@ export default function CheckoutPage({
     }
   }
 
+
   return (
     <div className="page-wrapper" style={{ paddingTop: "3rem", paddingBottom: "5rem" }}>
       <div className="checkout-layout">
@@ -115,18 +146,57 @@ export default function CheckoutPage({
           </ul>
           <div className="plan-divider" />
 
+          {/* Promo Code */}
+          <div style={{ marginBottom: "0.75rem" }}>
+            <div style={{ fontSize: "0.75rem", color: "var(--text-3)", marginBottom: "0.5rem", fontWeight: 500 }}>
+              Promo Code
+            </div>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <input
+                className="form-input"
+                placeholder="e.g. CAPITRA10"
+                value={promoCode}
+                onChange={(e) => { setPromoCode(e.target.value.toUpperCase()); setPromoError(""); }}
+                disabled={promoApplied}
+                style={{ flex: 1, fontSize: "0.8125rem", textTransform: "uppercase" }}
+              />
+              <button
+                type="button"
+                onClick={applyPromo}
+                disabled={promoApplied || !promoCode.trim()}
+                className="btn btn-ghost btn-sm"
+                style={{ flexShrink: 0 }}
+              >
+                {promoApplied ? "Applied ✓" : "Apply"}
+              </button>
+            </div>
+            {promoError && (
+              <div style={{ fontSize: "0.6875rem", color: "var(--red)", marginTop: "0.3rem" }}>{promoError}</div>
+            )}
+          </div>
+
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem", marginBottom: "0.5rem" }}>
             <span style={{ color: "var(--text-2)" }}>Challenge fee</span>
-            <span>₹{plan.price.toLocaleString("en-IN")}</span>
+            <span style={{ textDecoration: promoApplied ? "line-through" : undefined, color: promoApplied ? "var(--text-3)" : undefined }}>
+              ₹{plan.price.toLocaleString("en-IN")}
+            </span>
           </div>
+          {promoApplied && (
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem", marginBottom: "0.5rem", color: "var(--green)" }}>
+              <span>Discount ({discount}%)</span>
+              <span>-₹{(plan.price - discountedPrice).toLocaleString("en-IN")}</span>
+            </div>
+          )}
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem", marginBottom: "0.5rem" }}>
             <span style={{ color: "var(--text-2)" }}>GST (18%)</span>
-            <span>₹{Math.round(plan.price * 0.18).toLocaleString("en-IN")}</span>
+            <span>₹{Math.round(discountedPrice * 0.18).toLocaleString("en-IN")}</span>
           </div>
           <div className="plan-divider" />
           <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: "1rem" }}>
             <span>Total</span>
-            <span>₹{Math.round(plan.price * 1.18).toLocaleString("en-IN")}</span>
+            <span style={{ color: promoApplied ? "var(--green)" : undefined }}>
+              ₹{totalWithGst.toLocaleString("en-IN")}
+            </span>
           </div>
 
           <div style={{ marginTop: "1.25rem", padding: "0.875rem", background: "var(--bg-elevated)", borderRadius: "var(--radius-sm)", fontSize: "0.75rem", color: "var(--text-3)" }}>
@@ -146,9 +216,10 @@ export default function CheckoutPage({
               disabled={paying}
               className="btn btn-blue btn-full btn-lg"
             >
-              {paying ? "Processing…" : `Pay ₹${Math.round(plan.price * 1.18).toLocaleString("en-IN")} →`}
+              {paying ? "Processing…" : `Pay ₹${totalWithGst.toLocaleString("en-IN")} →`}
             </button>
           </div>
+
 
           <div className="card">
             <div style={{ fontSize: "0.8125rem", fontWeight: 600, marginBottom: "1rem" }}>What happens next?</div>
