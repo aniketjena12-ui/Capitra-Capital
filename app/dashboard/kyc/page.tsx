@@ -32,20 +32,37 @@ export default function KycPage() {
     kycDocType: "",
   });
 
-  useEffect(() => { fetchKyc(); }, []);
+  // State for files selected for upload
+  const [idFile, setIdFile] = useState<File | null>(null);
+  const [selfieFile, setSelfieFile] = useState<File | null>(null);
+  const [idLocalPreview, setIdLocalPreview] = useState<string>("");
+  const [selfieLocalPreview, setSelfieLocalPreview] = useState<string>("");
+
+  // State for displaying existing uploaded documents from the server (Base64 data URIs)
+  const [idPreviewUrl, setIdPreviewUrl] = useState<string>("");
+  const [selfiePreviewUrl, setSelfiePreviewUrl] = useState<string>("");
+
+  useEffect(() => {
+    fetchKyc();
+  }, []);
 
   async function fetchKyc() {
     try {
       const res = await fetch("/api/kyc");
       const data = await res.json();
       if (res.ok && data.kyc) {
-        setKycStatus(data.kyc.kycStatus as KycStatus);
+        const status = data.kyc.kycStatus as KycStatus;
+        setKycStatus(status);
         setKycNotes(data.kyc.kycNotes || null);
         setForm({
           kycIdUrl: data.kyc.kycIdUrl || "",
           kycSelfieUrl: data.kyc.kycSelfieUrl || "",
           kycDocType: data.kyc.kycDocType || "",
         });
+
+        if (status === "PENDING" || status === "VERIFIED") {
+          fetchPreviews();
+        }
       }
     } catch {
       toast("Failed to load KYC status.", "error");
@@ -54,27 +71,108 @@ export default function KycPage() {
     }
   }
 
+  async function fetchPreviews() {
+    try {
+      const [idRes, selfieRes] = await Promise.all([
+        fetch("/api/kyc/view?doc=id"),
+        fetch("/api/kyc/view?doc=selfie"),
+      ]);
+      if (idRes.ok) {
+        const idData = await idRes.json();
+        setIdPreviewUrl(idData.url);
+      }
+      if (selfieRes.ok) {
+        const selfieData = await selfieRes.json();
+        setSelfiePreviewUrl(selfieData.url);
+      }
+    } catch (err) {
+      console.error("Failed to load document previews:", err);
+    }
+  }
+
+  // Convert File object to Base64 Data URI
+  function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  }
+
+  async function handleIdFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 4 * 1024 * 1024) {
+        toast("File size exceeds 4MB limit.", "error");
+        return;
+      }
+      try {
+        const base64 = await fileToBase64(file);
+        setIdFile(file);
+        setIdLocalPreview(base64);
+      } catch (err) {
+        toast("Failed to read ID document file.", "error");
+      }
+    }
+  }
+
+  async function handleSelfieFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 4 * 1024 * 1024) {
+        toast("File size exceeds 4MB limit.", "error");
+        return;
+      }
+      try {
+        const base64 = await fileToBase64(file);
+        setSelfieFile(file);
+        setSelfieLocalPreview(base64);
+      } catch (err) {
+        toast("Failed to read selfie file.", "error");
+      }
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.kycIdUrl.trim() || !form.kycSelfieUrl.trim()) {
-      toast("Please fill in both document fields.", "error");
-      return;
-    }
     if (!form.kycDocType) {
       toast("Please select your document type.", "error");
       return;
     }
+    if (!idLocalPreview || !selfieLocalPreview) {
+      toast("Please select both Government ID and Selfie files.", "error");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const res = await fetch("/api/kyc", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          kycIdUrl: idLocalPreview,
+          kycSelfieUrl: selfieLocalPreview,
+          kycDocType: form.kycDocType,
+        }),
       });
+
       const data = await res.json();
       if (res.ok) {
         toast(data.message || "KYC submitted successfully.", "success");
         setKycStatus("PENDING");
+        setForm({
+          kycIdUrl: idLocalPreview,
+          kycSelfieUrl: selfieLocalPreview,
+          kycDocType: form.kycDocType,
+        });
+        // Reset selections
+        setIdFile(null);
+        setSelfieFile(null);
+        setIdLocalPreview("");
+        setSelfieLocalPreview("");
+        // Reload previews
+        fetchPreviews();
       } else {
         toast(data.error || "Failed to submit KYC.", "error");
       }
@@ -165,15 +263,94 @@ export default function KycPage() {
           </div>
         </div>
 
+        {/* Submitted Previews (Only shown if user has submitted files before) */}
+        {kycStatus !== "UNVERIFIED" && (
+          <div className="card" style={{ marginBottom: "1.5rem" }}>
+            <div style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "1rem", color: "var(--text-1)" }}>
+              📄 Submitted Documents
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <div style={{ fontSize: "0.8125rem", color: "var(--text-2)" }}>
+                <strong style={{ color: "var(--text-1)" }}>Document Type: </strong>
+                {docTypeOptions.find(d => d.value === form.kycDocType)?.label || form.kycDocType || "—"}
+              </div>
+              
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }} className="mobile-1col">
+                {/* Government ID Preview */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-2)" }}>Government ID:</span>
+                  {idPreviewUrl ? (
+                    idPreviewUrl.startsWith("data:application/pdf") ? (
+                      <a 
+                        href={idPreviewUrl} 
+                        download={`kyc_id_${form.kycDocType.toLowerCase()}.pdf`}
+                        className="btn btn-ghost btn-sm" 
+                        style={{ display: "flex", alignItems: "center", gap: "0.5rem", justifyContent: "center", padding: "1.5rem", textDecoration: "none" }}
+                      >
+                        <span>📄</span> Download ID (PDF)
+                      </a>
+                    ) : (
+                      <a href={idPreviewUrl} target="_blank" rel="noreferrer" style={{ display: "block", borderRadius: "var(--radius-sm)", overflow: "hidden", border: "1px solid var(--border-soft)", background: "rgba(255,255,255,0.02)" }}>
+                        <img 
+                          src={idPreviewUrl} 
+                          alt="Government ID" 
+                          style={{ width: "100%", maxHeight: "150px", objectFit: "contain", transition: "transform 0.2s" }}
+                          onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.03)"}
+                          onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+                        />
+                      </a>
+                    )
+                  ) : (
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-3)", padding: "2rem", textAlign: "center", border: "1px solid var(--border-soft)", borderRadius: "var(--radius-sm)" }}>
+                      Loading document...
+                    </div>
+                  )}
+                </div>
+
+                {/* Selfie Preview */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-2)" }}>Selfie holding ID:</span>
+                  {selfiePreviewUrl ? (
+                    selfiePreviewUrl.startsWith("data:application/pdf") ? (
+                      <a 
+                        href={selfiePreviewUrl} 
+                        download="kyc_selfie.pdf"
+                        className="btn btn-ghost btn-sm" 
+                        style={{ display: "flex", alignItems: "center", gap: "0.5rem", justifyContent: "center", padding: "1.5rem", textDecoration: "none" }}
+                      >
+                        <span>📄</span> Download Selfie (PDF)
+                      </a>
+                    ) : (
+                      <a href={selfiePreviewUrl} target="_blank" rel="noreferrer" style={{ display: "block", borderRadius: "var(--radius-sm)", overflow: "hidden", border: "1px solid var(--border-soft)", background: "rgba(255,255,255,0.02)" }}>
+                        <img 
+                          src={selfiePreviewUrl} 
+                          alt="Selfie" 
+                          style={{ width: "100%", maxHeight: "150px", objectFit: "contain", transition: "transform 0.2s" }}
+                          onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.03)"}
+                          onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+                        />
+                      </a>
+                    )
+                  ) : (
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-3)", padding: "2rem", textAlign: "center", border: "1px solid var(--border-soft)", borderRadius: "var(--radius-sm)" }}>
+                      Loading document...
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Form */}
         {kycStatus !== "VERIFIED" && (
           <div className="card">
             <div style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "0.5rem" }}>
-              {kycStatus === "PENDING" ? "Documents Submitted" : "Submit Your Documents"}
+              {kycStatus === "PENDING" ? "Resubmit Documents" : "Submit Your Documents"}
             </div>
             <p style={{ fontSize: "0.8125rem", color: "var(--text-3)", marginBottom: "1.25rem", lineHeight: 1.5 }}>
               {kycStatus === "PENDING"
-                ? "Your documents are being reviewed. You may resubmit to update them."
+                ? "Your documents are being reviewed. You may resubmit below to update them."
                 : "Upload your government-issued ID and a selfie holding the document."}
             </p>
 
@@ -197,38 +374,178 @@ export default function KycPage() {
                 </select>
               </div>
 
-              {/* Government ID */}
+              {/* Government ID Upload Container */}
               <div className="form-group">
                 <label className="form-label">
                   🪪 Government ID (front &amp; back) <span style={{ color: "var(--red)" }}>*</span>
                 </label>
-                <input
-                  className="form-input"
-                  placeholder="File path or URL (e.g. aadhaar_front.jpg or https://...)"
-                  value={form.kycIdUrl}
-                  onChange={(e) => setForm((f) => ({ ...f, kycIdUrl: e.target.value }))}
-                  required
-                />
-                <span style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.25rem", display: "block" }}>
-                  Clear, readable photo of your selected document (both sides if applicable).
-                </span>
+                
+                <div 
+                  style={{
+                    border: "2px dashed var(--border-bright)",
+                    borderRadius: "var(--radius-md)",
+                    padding: "1.5rem",
+                    textAlign: "center",
+                    background: "rgba(255, 255, 255, 0.01)",
+                    cursor: "pointer",
+                    transition: "border-color 0.2s, background-color 0.2s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "var(--blue-400)";
+                    e.currentTarget.style.backgroundColor = "rgba(59, 130, 246, 0.02)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "var(--border-bright)";
+                    e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.01)";
+                  }}
+                  onClick={() => document.getElementById("id-file-input")?.click()}
+                >
+                  <input
+                    id="id-file-input"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    onChange={handleIdFileChange}
+                    style={{ display: "none" }}
+                  />
+                  
+                  {idLocalPreview ? (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }} onClick={(e) => e.stopPropagation()}>
+                      {idFile?.type === "application/pdf" ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "1rem", background: "rgba(255,255,255,0.05)", borderRadius: "var(--radius-sm)" }}>
+                          <span style={{ fontSize: "2rem" }}>📄</span>
+                          <div style={{ textAlign: "left" }}>
+                            <div style={{ fontSize: "0.8125rem", color: "var(--text-1)", fontWeight: 500 }}>{idFile.name}</div>
+                            <div style={{ fontSize: "0.6875rem", color: "var(--text-3)" }}>{(idFile.size / 1024 / 1024).toFixed(2)} MB (PDF)</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <img 
+                          src={idLocalPreview} 
+                          alt="ID Preview" 
+                          style={{ maxHeight: "150px", maxWidth: "100%", borderRadius: "var(--radius-sm)", objectFit: "contain", border: "1px solid var(--border-soft)" }}
+                        />
+                      )}
+                      <div style={{ display: "flex", gap: "0.5rem" }}>
+                        <button 
+                          type="button" 
+                          className="btn btn-ghost btn-sm" 
+                          style={{ padding: "0.25rem 0.75rem", fontSize: "0.75rem" }}
+                          onClick={() => document.getElementById("id-file-input")?.click()}
+                        >
+                          Change
+                        </button>
+                        <button 
+                          type="button" 
+                          className="btn btn-ghost btn-sm" 
+                          style={{ padding: "0.25rem 0.75rem", fontSize: "0.75rem", color: "var(--red)", borderColor: "var(--red)" }}
+                          onClick={() => {
+                            setIdFile(null);
+                            setIdLocalPreview("");
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <span style={{ fontSize: "2rem", display: "block", marginBottom: "0.5rem" }}>📤</span>
+                      <span style={{ fontSize: "0.8125rem", color: "var(--text-1)", fontWeight: 500, display: "block" }}>
+                        Click to upload Government ID
+                      </span>
+                      <span style={{ fontSize: "0.6875rem", color: "var(--text-3)", display: "block", marginTop: "0.25rem" }}>
+                        Supports JPG, PNG, WebP, PDF (Max 4MB)
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Selfie */}
+              {/* Selfie holding ID Upload Container */}
               <div className="form-group">
                 <label className="form-label">
                   🤳 Selfie holding your ID <span style={{ color: "var(--red)" }}>*</span>
                 </label>
-                <input
-                  className="form-input"
-                  placeholder="File path or URL (e.g. selfie_with_id.jpg or https://...)"
-                  value={form.kycSelfieUrl}
-                  onChange={(e) => setForm((f) => ({ ...f, kycSelfieUrl: e.target.value }))}
-                  required
-                />
-                <span style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.25rem", display: "block" }}>
-                  A clear photo of your face holding the document — no filters.
-                </span>
+                
+                <div 
+                  style={{
+                    border: "2px dashed var(--border-bright)",
+                    borderRadius: "var(--radius-md)",
+                    padding: "1.5rem",
+                    textAlign: "center",
+                    background: "rgba(255, 255, 255, 0.01)",
+                    cursor: "pointer",
+                    transition: "border-color 0.2s, background-color 0.2s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "var(--blue-400)";
+                    e.currentTarget.style.backgroundColor = "rgba(59, 130, 246, 0.02)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "var(--border-bright)";
+                    e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.01)";
+                  }}
+                  onClick={() => document.getElementById("selfie-file-input")?.click()}
+                >
+                  <input
+                    id="selfie-file-input"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    onChange={handleSelfieFileChange}
+                    style={{ display: "none" }}
+                  />
+                  
+                  {selfieLocalPreview ? (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }} onClick={(e) => e.stopPropagation()}>
+                      {selfieFile?.type === "application/pdf" ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "1rem", background: "rgba(255,255,255,0.05)", borderRadius: "var(--radius-sm)" }}>
+                          <span style={{ fontSize: "2rem" }}>📄</span>
+                          <div style={{ textAlign: "left" }}>
+                            <div style={{ fontSize: "0.8125rem", color: "var(--text-1)", fontWeight: 500 }}>{selfieFile.name}</div>
+                            <div style={{ fontSize: "0.6875rem", color: "var(--text-3)" }}>{(selfieFile.size / 1024 / 1024).toFixed(2)} MB (PDF)</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <img 
+                          src={selfieLocalPreview} 
+                          alt="Selfie Preview" 
+                          style={{ maxHeight: "150px", maxWidth: "100%", borderRadius: "var(--radius-sm)", objectFit: "contain", border: "1px solid var(--border-soft)" }}
+                        />
+                      )}
+                      <div style={{ display: "flex", gap: "0.5rem" }}>
+                        <button 
+                          type="button" 
+                          className="btn btn-ghost btn-sm" 
+                          style={{ padding: "0.25rem 0.75rem", fontSize: "0.75rem" }}
+                          onClick={() => document.getElementById("selfie-file-input")?.click()}
+                        >
+                          Change
+                        </button>
+                        <button 
+                          type="button" 
+                          className="btn btn-ghost btn-sm" 
+                          style={{ padding: "0.25rem 0.75rem", fontSize: "0.75rem", color: "var(--red)", borderColor: "var(--red)" }}
+                          onClick={() => {
+                            setSelfieFile(null);
+                            setSelfieLocalPreview("");
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <span style={{ fontSize: "2rem", display: "block", marginBottom: "0.5rem" }}>📤</span>
+                      <span style={{ fontSize: "0.8125rem", color: "var(--text-1)", fontWeight: 500, display: "block" }}>
+                        Click to upload Selfie holding ID
+                      </span>
+                      <span style={{ fontSize: "0.6875rem", color: "var(--text-3)", display: "block", marginTop: "0.25rem" }}>
+                        Supports JPG, PNG, WebP, PDF (Max 4MB)
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div
@@ -252,30 +569,12 @@ export default function KycPage() {
                 style={{ alignSelf: "flex-start" }}
               >
                 {submitting
-                  ? "Submitting…"
+                  ? "Submitting KYC..."
                   : kycStatus === "PENDING"
                   ? "Resubmit Documents"
                   : "Submit for Verification →"}
               </button>
             </form>
-          </div>
-        )}
-
-        {/* Verified — show what was submitted */}
-        {kycStatus === "VERIFIED" && (
-          <div className="card" style={{ background: "rgba(22,163,74,0.05)", border: "1px solid rgba(34,197,94,0.2)" }}>
-            <div style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "1rem", color: "var(--green)" }}>
-              ✅ Verified Documents
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
-              <div style={{ fontSize: "0.8125rem", color: "var(--text-2)" }}>
-                <strong style={{ color: "var(--text-1)" }}>Document type: </strong>
-                {docTypeOptions.find(d => d.value === form.kycDocType)?.label || form.kycDocType || "—"}
-              </div>
-              <div style={{ fontSize: "0.8125rem", color: "var(--text-3)" }}>
-                Your identity has been verified. No further action required.
-              </div>
-            </div>
           </div>
         )}
       </div>

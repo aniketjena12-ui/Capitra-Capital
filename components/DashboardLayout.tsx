@@ -7,6 +7,7 @@ import { useSession } from "next-auth/react";
 
 const sidebarNav = [
   { href: "/dashboard",          icon: "📊", label: "Overview"   },
+  { href: "/dashboard/trade",    icon: "📈", label: "WebTrader"  },
   { href: "/dashboard/journal",  icon: "📋", label: "Journal"    },
   { href: "/dashboard/payouts",  icon: "💸", label: "Payouts"    },
   { href: "/dashboard/kyc",      icon: "🪪", label: "KYC"        },
@@ -22,10 +23,10 @@ const quickLinks = [
 // Bottom nav shown on mobile — 5 key items
 const mobileNav = [
   { href: "/dashboard",          icon: "📊", label: "Overview"  },
+  { href: "/dashboard/trade",    icon: "📈", label: "Trade"     },
   { href: "/dashboard/journal",  icon: "📋", label: "Journal"   },
   { href: "/dashboard/payouts",  icon: "💸", label: "Payouts"   },
   { href: "/dashboard/kyc",      icon: "🪪", label: "KYC"       },
-  { href: "/signout",            icon: "🚪", label: "Sign Out", danger: true },
 ];
 
 interface DashboardLayoutProps {
@@ -95,14 +96,23 @@ export default function DashboardLayout({
               </Link>
             ))}
             {isAdmin && (
-              <Link
-                href="/admin/payouts"
-                className={`sidebar-nav-item${pathname === "/admin/payouts" ? " active" : ""}`}
-                style={{ borderLeft: "2px solid var(--yellow)" }}
-              >
-                <span className="sidebar-icon">👑</span>
-                Admin Console
-              </Link>
+              <>
+                <div className="sidebar-label" style={{ marginTop: "1rem" }}>Admin Console</div>
+                <Link
+                  href="/admin/payouts"
+                  className={`sidebar-nav-item${pathname === "/admin/payouts" ? " active" : ""}`}
+                >
+                  <span className="sidebar-icon">💸</span>
+                  Payout Requests
+                </Link>
+                <Link
+                  href="/admin/kyc"
+                  className={`sidebar-nav-item${pathname === "/admin/kyc" ? " active" : ""}`}
+                >
+                  <span className="sidebar-icon">🪪</span>
+                  KYC Reviews
+                </Link>
+              </>
             )}
           </div>
 

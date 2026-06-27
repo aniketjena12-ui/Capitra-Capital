@@ -21,11 +21,11 @@ export const GET = withHandler(async () => {
   return ok({ kyc: user });
 });
 
-// POST — submit or resubmit KYC documents
+// POST — submit KYC documents directly as Base64 strings
+// Body: { kycIdUrl, kycSelfieUrl, kycDocType }
 export const POST = withHandler(async (req: NextRequest) => {
   const { userId } = await requireAuth();
 
-  // Check current KYC status — don't allow resubmission if already VERIFIED
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { kycStatus: true },
@@ -37,6 +37,12 @@ export const POST = withHandler(async (req: NextRequest) => {
 
   const { kycIdUrl, kycSelfieUrl, kycDocType } = await parseBody(req, kycSubmitSchema);
 
+  // Validate Base64 payload size (roughly 4MB binary ≈ 5.5MB Base64 string length)
+  const MAX_BASE64_LENGTH = 6 * 1024 * 1024;
+  if (kycIdUrl.length > MAX_BASE64_LENGTH || kycSelfieUrl.length > MAX_BASE64_LENGTH) {
+    throw ApiError.badRequest("Uploaded documents exceed the 4 MB limit.");
+  }
+
   await prisma.user.update({
     where: { id: userId },
     data: {
@@ -44,11 +50,10 @@ export const POST = withHandler(async (req: NextRequest) => {
       kycIdUrl,
       kycSelfieUrl,
       kycDocType,
-      kycNotes: null, // Clear previous rejection notes on resubmission
+      kycNotes: null,
     },
   });
 
-  // Create in-app notification
   await prisma.notification.create({
     data: {
       userId,

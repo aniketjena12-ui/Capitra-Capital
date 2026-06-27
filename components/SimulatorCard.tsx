@@ -86,8 +86,9 @@ export default function SimulatorCard({ hasAccount, accountStatus }: { hasAccoun
               <select className="form-input" style={{ fontSize: "0.75rem", padding: "0.5rem" }} value={symbol} onChange={e => setSymbol(e.target.value)}>
                 <option value="NIFTY 50">NIFTY 50</option>
                 <option value="BANKNIFTY">BANKNIFTY</option>
-                <option value="BTC/USDT">BTC/USDT</option>
-                <option value="ETH/USDT">ETH/USDT</option>
+                <option value="GOLD">GOLD</option>
+                <option value="SILVER">SILVER</option>
+                <option value="CRUDE OIL">CRUDE OIL</option>
                 <option value="RELIANCE">RELIANCE</option>
               </select>
             </div>

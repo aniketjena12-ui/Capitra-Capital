@@ -4,9 +4,8 @@ import bcryptjs from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 
-/** Single source of truth for admin identity. Can be overridden via env var. */
-export const ADMIN_EMAIL =
-  process.env.ADMIN_EMAIL || "admin@capitracapital.com";
+import { ADMIN_EMAIL } from "./constants";
+export { ADMIN_EMAIL };
 
 export const authOptions: NextAuthOptions = {
   providers: [

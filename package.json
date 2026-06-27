@@ -12,6 +12,9 @@
     "sim:reset": "ts-node -r tsconfig-paths/register prisma/simulate-trades.ts reset"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1075.0",
+    "@aws-sdk/lib-storage": "^3.1075.0",
+    "@aws-sdk/s3-request-presigner": "^3.1075.0",
     "@prisma/client": "^5.22.0",
     "@types/nodemailer": "^8.0.1",
     "bcryptjs": "^3.0.3",

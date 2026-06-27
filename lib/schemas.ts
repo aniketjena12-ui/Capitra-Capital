@@ -46,9 +46,9 @@ export const changePasswordSchema = z.object({
 export const kycDocTypes = ["AADHAAR", "PAN", "PASSPORT", "VOTER_ID", "DRIVING_LICENSE"] as const;
 
 export const kycSubmitSchema = z.object({
-  kycIdUrl: z.string().min(1, "Government ID is required."),
-  kycSelfieUrl: z.string().min(1, "Selfie is required."),
-  // Zod v4: use z.enum with just the tuple and a custom `error` string
+  // Base64 Data URIs (e.g. data:image/jpeg;base64,...)
+  kycIdUrl: z.string().min(1, "Government ID upload is required.").startsWith("data:", "Invalid file upload format."),
+  kycSelfieUrl: z.string().min(1, "Selfie upload is required.").startsWith("data:", "Invalid file upload format."),
   kycDocType: z
     .string()
     .refine((v): v is (typeof kycDocTypes)[number] => (kycDocTypes as readonly string[]).includes(v), {
