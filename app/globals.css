@@ -39,13 +39,20 @@
    RESET & BASE
    ============================================ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  /* Prevent any element from causing horizontal scroll */
+  overflow-x: hidden;
+  width: 100%;
+}
 
 body {
   font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
   background-color: var(--bg-base);
   color: var(--text-1);
   min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.6;
@@ -260,6 +267,31 @@ body::before {
   border-top: 1px solid var(--border-soft);
   padding: 3rem 1.5rem 2rem;
   margin-top: 4rem;
+}
+
+.footer-top-grid {
+  display: grid;
+  grid-template-columns: 1.5fr repeat(3, 1fr);
+  gap: 2.5rem;
+  padding-bottom: 2.5rem;
+}
+
+@media (max-width: 768px) {
+  .footer-top-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .footer-top-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .footer {
+    padding: 2rem 1rem 1.5rem;
+    margin-top: 2rem;
+  }
 }
 
 .footer-inner {
@@ -1006,7 +1038,7 @@ textarea.form-input { resize: vertical; min-height: 120px; }
   top: -80px;
   left: 50%;
   transform: translateX(-50%);
-  width: 600px;
+  width: min(600px, 100vw);
   height: 400px;
   background: radial-gradient(ellipse at center, rgba(37,99,235,0.18) 0%, transparent 65%);
   pointer-events: none;
@@ -1160,8 +1192,8 @@ textarea.form-input { resize: vertical; min-height: 120px; }
   top: 50%;
   left: 50%;
   transform: translate(-50%, -60%);
-  width: 500px;
-  height: 500px;
+  width: min(500px, 100vw);
+  height: min(500px, 100vw);
   background: radial-gradient(circle, rgba(37,99,235,0.12), transparent 65%);
   pointer-events: none;
 }
@@ -1387,6 +1419,36 @@ textarea.form-input { resize: vertical; min-height: 120px; }
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Single-column stat cards on very small phones */
+  .dash-grid-4 {
+    grid-template-columns: 1fr;
+  }
+  /* Shrink hero padding so it doesn't clip */
+  .hero-section {
+    padding: 3.5rem 1rem 2.5rem;
+  }
+  .inner-hero {
+    padding: 2.5rem 1rem 1.5rem;
+  }
+  /* Login card — tighter padding on small screens */
+  .login-card {
+    padding: 1.75rem 1.25rem;
+  }
+  /* Page wrapper — tighter horizontal padding */
+  .page-wrapper {
+    padding: 0 1rem;
+  }
+  /* Toast — don't overflow on narrow screens */
+  .toast-container {
+    right: 0.75rem;
+    left: 0.75rem;
+  }
+  .toast {
+    max-width: 100%;
   }
 }
 
