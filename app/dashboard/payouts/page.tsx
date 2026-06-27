@@ -108,7 +108,7 @@ export default function PayoutsPage() {
 
   return (
     <DashboardLayout title="Payouts" subtitle="Request withdrawals and view your payout history">
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }} className="payouts-stats-grid">
         <div className="dash-stat-card">
           <div className="dash-stat-label">Available to Withdraw</div>
           <div className="dash-stat-value green">₹{available.toLocaleString("en-IN")}</div>
@@ -158,7 +158,7 @@ export default function PayoutsPage() {
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr", gap: "1.5rem", alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr", gap: "1.5rem", alignItems: "start" }} className="payouts-main-grid">
         {/* Request Form */}
         <div className="card">
           <div style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "1.25rem" }}>Request Payout</div>

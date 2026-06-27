@@ -68,6 +68,9 @@ export default function Home() {
             <Link href="/register" className="btn btn-blue btn-lg">
               Create Free Account
             </Link>
+            <Link href="/login" className="btn btn-ghost btn-lg">
+              Sign In
+            </Link>
             <Link href="/challenges" className="btn btn-ghost btn-lg">
               View Challenges
             </Link>

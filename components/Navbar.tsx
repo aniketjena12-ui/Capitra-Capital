@@ -27,23 +27,37 @@ export default function Navbar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
-  
-  // Notification states
+
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
+  // Close drawer on route change
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  // Lock body scroll when mobile drawer is open
+  useEffect(() => {
+    if (menuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [menuOpen]);
+
   useEffect(() => {
     if (session) {
       fetchNotifications();
-      // Poll notifications every 30 seconds
       const interval = setInterval(fetchNotifications, 30000);
       return () => clearInterval(interval);
     }
   }, [session]);
 
-  // Close notifications dropdown on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
@@ -74,9 +88,7 @@ export default function Navbar() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notificationId: id }),
       });
-      if (res.ok) {
-        fetchNotifications();
-      }
+      if (res.ok) fetchNotifications();
     } catch (e) {
       console.warn("Failed to update notification status:", e);
     }
@@ -91,7 +103,8 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="navbar" style={{ zIndex: 100 }}>
+      {/* z-index 300 — above drawer (290), backdrop (280), bottom nav (200) */}
+      <nav className="navbar">
         <div className="navbar-inner">
           <Link href="/" className="navbar-brand" onClick={() => setMenuOpen(false)}>
             <span className="navbar-brand-dot" />
@@ -100,26 +113,22 @@ export default function Navbar() {
 
           <div className="navbar-links navbar-desktop">
             {navLinks.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={pathname === l.href ? "active" : ""}
-              >
+              <Link key={l.href} href={l.href} className={pathname === l.href ? "active" : ""}>
                 {l.label}
               </Link>
             ))}
 
             {session ? (
               <>
-                <Link 
-                  href="/dashboard" 
+                <Link
+                  href="/dashboard"
                   className={pathname?.startsWith("/dashboard") ? "active" : ""}
                   style={{ fontWeight: 600, color: "var(--blue-400)" }}
                 >
                   Dashboard
                 </Link>
 
-                {/* Notifications Bell Dropdown */}
+                {/* Notifications Bell */}
                 <div ref={notifRef} style={{ position: "relative", marginLeft: "0.5rem" }}>
                   <button
                     onClick={() => setNotifOpen(!notifOpen)}
@@ -133,7 +142,7 @@ export default function Navbar() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      position: "relative"
+                      position: "relative",
                     }}
                     aria-label="Notifications"
                   >
@@ -154,7 +163,7 @@ export default function Navbar() {
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          padding: "0 2px"
+                          padding: "0 2px",
                         }}
                       >
                         {unreadCount}
@@ -169,17 +178,17 @@ export default function Navbar() {
                         top: "100%",
                         right: 0,
                         width: "320px",
-                        background: "rgba(17, 24, 39, 0.95)",
+                        background: "rgba(17,24,39,0.95)",
                         backdropFilter: "blur(16px)",
                         border: "1px solid var(--border-soft)",
                         borderRadius: "var(--radius-md)",
                         boxShadow: "0 20px 25px -5px rgba(0,0,0,0.5)",
                         marginTop: "0.5rem",
-                        zIndex: 110,
+                        zIndex: 310,
                         maxHeight: "400px",
                         display: "flex",
                         flexDirection: "column",
-                        overflow: "hidden"
+                        overflow: "hidden",
                       }}
                     >
                       <div
@@ -188,10 +197,12 @@ export default function Navbar() {
                           borderBottom: "1px solid var(--border-soft)",
                           display: "flex",
                           justifyContent: "space-between",
-                          alignItems: "center"
+                          alignItems: "center",
                         }}
                       >
-                        <span style={{ fontWeight: 600, fontSize: "0.8125rem", color: "var(--text-1)" }}>Notifications</span>
+                        <span style={{ fontWeight: 600, fontSize: "0.8125rem", color: "var(--text-1)" }}>
+                          Notifications
+                        </span>
                         {unreadCount > 0 && (
                           <button
                             onClick={() => handleMarkRead()}
@@ -201,7 +212,7 @@ export default function Navbar() {
                               color: "var(--blue-400)",
                               fontSize: "0.6875rem",
                               cursor: "pointer",
-                              padding: 0
+                              padding: 0,
                             }}
                           >
                             Mark all read
@@ -217,7 +228,10 @@ export default function Navbar() {
                         ) : (
                           notifications.map((n) => {
                             const dateStr = new Date(n.createdAt).toLocaleDateString("en-IN", {
-                              day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
+                              day: "numeric",
+                              month: "short",
+                              hour: "2-digit",
+                              minute: "2-digit",
                             });
                             return (
                               <div
@@ -226,20 +240,23 @@ export default function Navbar() {
                                 style={{
                                   padding: "0.75rem 1rem",
                                   borderBottom: "1px solid rgba(255,255,255,0.03)",
-                                  background: n.read ? "transparent" : "rgba(37, 99, 235, 0.05)",
+                                  background: n.read ? "transparent" : "rgba(37,99,235,0.05)",
                                   cursor: n.read ? "default" : "pointer",
                                   display: "flex",
                                   gap: "0.5rem",
                                   alignItems: "flex-start",
-                                  transition: "background 0.2s"
+                                  transition: "background 0.2s",
                                 }}
                               >
-                                <span 
-                                  style={{ 
-                                    width: 6, height: 6, borderRadius: "50%", 
-                                    background: typeColors[n.type] || "var(--text-3)", 
-                                    marginTop: 6, flexShrink: 0 
-                                  }} 
+                                <span
+                                  style={{
+                                    width: 6,
+                                    height: 6,
+                                    borderRadius: "50%",
+                                    background: typeColors[n.type] || "var(--text-3)",
+                                    marginTop: 6,
+                                    flexShrink: 0,
+                                  }}
                                 />
                                 <div style={{ flex: 1 }}>
                                   <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-1)", marginBottom: "0.15rem" }}>
@@ -266,7 +283,11 @@ export default function Navbar() {
                 <Link href="/login" className="navbar-login-btn">
                   Login
                 </Link>
-                <Link href="/register" className="btn btn-blue btn-sm" style={{ fontSize: "0.8125rem", padding: "0.4rem 1rem" }}>
+                <Link
+                  href="/register"
+                  className="btn btn-blue btn-sm"
+                  style={{ fontSize: "0.8125rem", padding: "0.4rem 1rem" }}
+                >
                   Get Started
                 </Link>
               </div>
@@ -286,9 +307,18 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile Drawer */}
-      <div className={`nav-drawer${menuOpen ? " open" : ""}`} style={{ zIndex: 90 }}>
-        <div className="nav-drawer-inner" style={{ paddingTop: "5rem" }}>
+      {/* Backdrop — blocks page interaction, closes drawer on tap */}
+      {menuOpen && (
+        <div
+          className="nav-backdrop"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile Drawer — slides in from right, above backdrop */}
+      <div className={`nav-drawer${menuOpen ? " open" : ""}`}>
+        <div className="nav-drawer-inner">
+          {/* Nav links */}
           {navLinks.map((l) => (
             <Link
               key={l.href}
@@ -300,21 +330,33 @@ export default function Navbar() {
             </Link>
           ))}
 
+          <div className="nav-drawer-divider" />
+
           {session ? (
-            <Link
-              href="/dashboard"
-              className="btn btn-blue btn-full"
-              style={{ marginTop: "1rem", display: "flex", justifyContent: "center" }}
-              onClick={() => setMenuOpen(false)}
-            >
-              Go to Dashboard
-            </Link>
+            <>
+              <Link
+                href="/dashboard"
+                className="btn btn-blue btn-full"
+                style={{ display: "flex", justifyContent: "center" }}
+                onClick={() => setMenuOpen(false)}
+              >
+                Go to Dashboard
+              </Link>
+              <Link
+                href="/signout"
+                className="nav-drawer-link"
+                style={{ color: "#f87171", marginTop: "0.25rem" }}
+                onClick={() => setMenuOpen(false)}
+              >
+                🚪 Sign Out
+              </Link>
+            </>
           ) : (
             <>
               <Link
                 href="/login"
                 className="btn btn-blue btn-full"
-                style={{ marginTop: "1rem", display: "flex", justifyContent: "center" }}
+                style={{ display: "flex", justifyContent: "center" }}
                 onClick={() => setMenuOpen(false)}
               >
                 Sign In
@@ -331,11 +373,6 @@ export default function Navbar() {
           )}
         </div>
       </div>
-
-      {/* Backdrop */}
-      {menuOpen && (
-        <div className="nav-backdrop" style={{ zIndex: 80 }} onClick={() => setMenuOpen(false)} />
-      )}
     </>
   );
 }

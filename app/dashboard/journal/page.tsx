@@ -256,7 +256,7 @@ export default function JournalPage() {
               </div>
             ) : (
               visible.map((t) => (
-                <div key={t.id} className="card" style={{ display: "grid", gridTemplateColumns: "auto 1fr auto auto", gap: "1.25rem", alignItems: "center" }}>
+                <div key={t.id} className="card trade-card-grid" style={{ display: "grid", gridTemplateColumns: "auto 1fr auto auto", gap: "1.25rem", alignItems: "center" }}>
                   <div style={{ textAlign: "center" }}>
                     <span className={`badge ${t.direction === "BUY" ? "badge-green" : "badge-red"}`} style={{ fontSize: "0.625rem", marginBottom: "0.25rem", display: "block" }}>{t.direction}</span>
                     <div style={{ fontSize: "0.6875rem", color: "var(--text-3)" }}>{t.date}</div>

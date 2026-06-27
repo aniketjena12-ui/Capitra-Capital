@@ -156,7 +156,7 @@ export default function SettingsPage() {
         <div className="card">
           <div className="settings-section-title">Profile Information</div>
           <form onSubmit={saveProfile} style={{ display: "flex", flexDirection: "column", gap: "1rem", marginTop: "1rem" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }} className="mobile-1col">
               <div className="form-group">
                 <label className="form-label">Full Name</label>
                 <input className="form-input" value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))} required />
@@ -180,7 +180,7 @@ export default function SettingsPage() {
           <div className="settings-section-title">Bank Account Details</div>
           <p style={{ fontSize: "0.8125rem", color: "var(--text-3)", margin: "0.5rem 0 1rem" }}>Used for profit payouts. Ensure details are accurate.</p>
           <form onSubmit={saveBank} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }} className="mobile-1col">
               <div className="form-group">
                 <label className="form-label">Account Holder Name</label>
                 <input className="form-input" value={bank.accountName} onChange={e => setBank(b => ({ ...b, accountName: e.target.value }))} required />
@@ -210,7 +210,7 @@ export default function SettingsPage() {
               <label className="form-label">Current Password</label>
               <input className="form-input" type="password" value={pwForm.current} onChange={e => setPwForm(p => ({ ...p, current: e.target.value }))} placeholder="••••••••" required />
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }} className="mobile-1col">
               <div className="form-group">
                 <label className="form-label">New Password</label>
                 <input className="form-input" type="password" value={pwForm.next} onChange={e => setPwForm(p => ({ ...p, next: e.target.value }))} placeholder="Min. 6 characters" required />

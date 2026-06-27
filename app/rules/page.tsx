@@ -114,7 +114,7 @@ export default function RulesPage() {
         </div>
 
         {/* Rule sections */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(480px, 1fr))", gap: "1.5rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(480px, 1fr))", gap: "1.5rem" }} className="rules-grid">
           {ruleSections.map((section) => {
             const c = colorMap[section.color];
             return (

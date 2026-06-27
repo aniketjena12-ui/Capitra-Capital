@@ -81,7 +81,7 @@ body::before {
 .navbar {
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 300;
   background: rgba(6, 8, 16, 0.8);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -163,89 +163,9 @@ body::before {
   color: #93c5fd;
 }
 
-/* Mobile hamburger button */
+/* Mobile hamburger — see full definition below in the MOBILE NAVBAR section */
 .nav-hamburger {
   display: none;
-  flex-direction: column;
-  justify-content: space-between;
-  width: 20px;
-  height: 14px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  z-index: 101;
-}
-
-.nav-hamburger span {
-  width: 100%;
-  height: 2px;
-  background-color: var(--text-1);
-  transition: all 0.25s ease-in-out;
-  transform-origin: left center;
-}
-
-.nav-hamburger.open span:nth-child(1) {
-  transform: rotate(45deg) translate(1px, -1px);
-}
-
-.nav-hamburger.open span:nth-child(2) {
-  width: 0%;
-  opacity: 0;
-}
-
-.nav-hamburger.open span:nth-child(3) {
-  transform: rotate(-45deg) translate(1px, 1px);
-}
-
-/* Mobile Drawer */
-.nav-drawer {
-  position: fixed;
-  top: 0;
-  right: -100%;
-  width: 280px;
-  height: 100vh;
-  background: rgba(12, 15, 26, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-left: 1px solid var(--border-soft);
-  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow-y: auto;
-}
-
-.nav-drawer.open {
-  right: 0;
-}
-
-.nav-drawer-inner {
-  display: flex;
-  flex-direction: column;
-  padding: 6rem 1.5rem 2rem;
-  gap: 1.25rem;
-}
-
-.nav-drawer-link {
-  color: var(--text-2);
-  text-decoration: none;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  padding: 0.5rem 0;
-  transition: color 0.18s ease;
-}
-
-.nav-drawer-link:hover,
-.nav-drawer-link.active {
-  color: var(--text-1);
-}
-
-/* Backdrop */
-.nav-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  transition: opacity 0.3s ease;
 }
 
 /* Responsive Media Queries for Navbar */
@@ -1570,10 +1490,10 @@ textarea.form-input { resize: vertical; min-height: 120px; }
   top: 58px;
   right: 0;
   bottom: 0;
-  width: 280px;
+  width: min(280px, 85vw);
   background: var(--bg-surface);
   border-left: 1px solid var(--border-soft);
-  z-index: 99;
+  z-index: 290;
   transform: translateX(100%);
   transition: transform 0.28s cubic-bezier(0.22,1,0.36,1);
   padding: 1.5rem;
@@ -1602,12 +1522,19 @@ textarea.form-input { resize: vertical; min-height: 120px; }
 .nav-drawer-link:hover { background: rgba(255,255,255,0.05); color: var(--text-1); }
 .nav-drawer-link.active { color: var(--blue-400); background: var(--blue-dim); }
 
+.nav-drawer-divider {
+  height: 1px;
+  background: var(--border-soft);
+  margin: 0.75rem 0;
+}
+
 .nav-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
-  z-index: 98;
-  backdrop-filter: blur(2px);
+  background: rgba(0,0,0,0.55);
+  z-index: 280;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
 }
 
 /* ============================================
@@ -1807,4 +1734,214 @@ textarea.form-input { resize: vertical; min-height: 120px; }
   .checkout-layout { grid-template-columns: 1fr; }
 
   .dash-grid-4 { grid-template-columns: 1fr 1fr; }
+}
+
+/* ============================================
+   MOBILE BOTTOM NAV (Dashboard)
+   ============================================ */
+.mobile-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 200;
+    background: rgba(12, 15, 26, 0.97);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border-soft);
+    padding: 0.5rem 0 calc(0.5rem + env(safe-area-inset-bottom));
+    gap: 0;
+  }
+
+  .mobile-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    padding: 0.4rem 0.25rem;
+    text-decoration: none;
+    color: var(--text-3);
+    transition: color 0.18s;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-nav-item:hover,
+  .mobile-nav-item.active {
+    color: var(--blue-400);
+  }
+
+  .mobile-nav-item.danger {
+    color: #f87171;
+  }
+
+  .mobile-nav-item.danger:hover {
+    color: #fca5a5;
+  }
+
+  .mobile-nav-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .mobile-nav-label {
+    font-size: 0.5625rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+
+  /* Push dashboard main content up so it's not hidden behind the nav */
+  .mobile-nav-spacer {
+    height: 72px;
+  }
+
+  /* Hide sidebar on mobile — bottom nav replaces it */
+  .dashboard-sidebar {
+    display: none;
+  }
+
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================
+   ABOUT PAGE — mobile timeline fix
+   ============================================ */
+@media (max-width: 680px) {
+  /* Mission section: 2-col → 1-col */
+  .about-mission-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Timeline: collapse horizontal layout */
+  .about-timeline-item {
+    grid-template-columns: auto 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  .about-timeline-year {
+    text-align: left !important;
+    min-width: 60px;
+  }
+
+  /* Hide the vertical line on mobile */
+  .about-timeline-line {
+    display: none;
+  }
+
+  .about-timeline-dot {
+    display: none;
+  }
+}
+
+/* ============================================
+   SETTINGS PAGE — mobile 2-col → 1-col forms
+   ============================================ */
+@media (max-width: 600px) {
+  .settings-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ============================================
+   CONTACT PAGE — mobile form grid
+   ============================================ */
+@media (max-width: 600px) {
+  .contact-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ============================================
+   LEADERBOARD — mobile podium
+   ============================================ */
+@media (max-width: 560px) {
+  .leaderboard-podium {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Horizontal scroll for leaderboard table on mobile */
+  .leaderboard-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ============================================
+   RULES PAGE — 2-col grid → 1-col on mobile
+   ============================================ */
+@media (max-width: 560px) {
+  .rules-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ============================================
+   JOURNAL PAGE — trade card layout on mobile
+   ============================================ */
+@media (max-width: 560px) {
+  .trade-card-grid {
+    grid-template-columns: 1fr auto !important;
+    grid-template-rows: auto auto;
+    gap: 0.5rem !important;
+  }
+
+  /* Direction+date badge spans just col 1, pnl+delete span col 2 */
+  .trade-card-grid > *:nth-child(1) { grid-column: 1; grid-row: 1; }
+  .trade-card-grid > *:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+  .trade-card-grid > *:nth-child(3) { grid-column: 2; grid-row: 1; text-align: right; }
+  .trade-card-grid > *:nth-child(4) { grid-column: 2; grid-row: 2; display: flex; justify-content: flex-end; align-items: flex-start; }
+}
+
+/* ============================================
+   DASHBOARD PAYOUTS — 2-col stats → 1-col
+   ============================================ */
+@media (max-width: 560px) {
+  .payouts-stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .payouts-main-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ============================================
+   GENERAL INLINE GRID OVERRIDES FOR MOBILE
+   Catches any remaining hardcoded 2-col grids
+   ============================================ */
+@media (max-width: 480px) {
+  /* Any inline style grid with 2+ columns collapses to 1 */
+  /* Applied via utility class where needed */
+  .mobile-1col {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Tighten card padding on very small screens */
+  .card {
+    padding: 1rem;
+  }
+
+  /* Tighten dashboard main padding */
+  .dashboard-main {
+    padding: 1.25rem 1rem;
+  }
+
+  /* Section headings scale down */
+  .dash-page-title {
+    font-size: 1.125rem;
+  }
 }

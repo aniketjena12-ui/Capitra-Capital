@@ -259,7 +259,7 @@ export default async function Dashboard() {
               Evaluation Health Dashboard
             </h2>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem" }} className="mobile-1col">
             
             {/* Card 1: Daily Drawdown Buffer */}
             <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", padding: "1.25rem" }}>

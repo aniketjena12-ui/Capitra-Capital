@@ -114,7 +114,7 @@ export default function AdminPayoutsPage() {
   return (
     <DashboardLayout title="Admin Payout Management" subtitle="Review, approve, or reject trader withdrawal requests">
       {/* Metrics Bar */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.5rem", marginBottom: "1.5rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.5rem", marginBottom: "1.5rem" }} className="mobile-1col">
         <div className="dash-stat-card">
           <div className="dash-stat-label">Pending Requests</div>
           <div className="dash-stat-value yellow">{pendingRequests} review needed</div>

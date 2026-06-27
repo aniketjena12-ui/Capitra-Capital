@@ -112,7 +112,7 @@ export default function Contact() {
                   gap: "1.25rem",
                 }}
               >
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }} className="mobile-1col">
                   <div className="form-group">
                     <label className="form-label">Your Name</label>
                     <input

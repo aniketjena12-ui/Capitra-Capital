@@ -150,7 +150,7 @@ export default function KycPage() {
         {/* Why KYC */}
         <div className="card" style={{ marginBottom: "1.5rem" }}>
           <div style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "1rem" }}>Why is KYC required?</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }} className="mobile-1col">
             {[
               { icon: "💸", text: "Required before your first payout is processed" },
               { icon: "🔒", text: "Prevents fraud and protects your earnings" },

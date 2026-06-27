@@ -61,7 +61,7 @@ export default function LeaderboardPage() {
         ) : traders.length >= 3 ? (
           <>
             {/* Top 3 podium */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1.15fr 1fr", gap: "1rem", marginBottom: "2.5rem", alignItems: "end" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1.15fr 1fr", gap: "1rem", marginBottom: "2.5rem", alignItems: "end" }} className="leaderboard-podium">
               {[traders[1], traders[0], traders[2]].map((t, i) => {
                 if (!t) return null;
                 return (
@@ -91,7 +91,7 @@ export default function LeaderboardPage() {
                 <span style={{ fontSize: "0.875rem", fontWeight: 600 }}>All Rankings — June 2026</span>
                 <span className="badge badge-green">Updated live</span>
               </div>
-              <div style={{ overflowX: "auto" }}>
+              <div style={{ overflowX: "auto" }} className="leaderboard-table-wrap">
                 <table className="leaderboard-table">
                   <thead>
                     <tr>

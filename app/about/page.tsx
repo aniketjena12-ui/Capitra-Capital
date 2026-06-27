@@ -90,7 +90,7 @@ export default function AboutPage() {
         </div>
 
         {/* Mission */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "3rem", marginBottom: "4rem", alignItems: "center" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "3rem", marginBottom: "4rem", alignItems: "center" }} className="mobile-1col">
           <div>
             <div className="section-eyebrow">Mission</div>
             <h2 className="section-title" style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
@@ -159,6 +159,7 @@ export default function AboutPage() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "0", position: "relative" }}>
             <div
+              className="about-timeline-line"
               style={{
                 position: "absolute",
                 left: "7.5rem",
@@ -171,6 +172,7 @@ export default function AboutPage() {
             {milestones.map((m, i) => (
               <div
                 key={i}
+                className="about-timeline-item"
                 style={{
                   display: "grid",
                   gridTemplateColumns: "7rem auto 1fr",
@@ -179,10 +181,11 @@ export default function AboutPage() {
                   paddingBottom: "2rem",
                 }}
               >
-                <div style={{ textAlign: "right", fontSize: "0.8125rem", fontWeight: 700, color: "var(--blue-400)", paddingTop: "0.15rem" }}>
+                <div className="about-timeline-year" style={{ textAlign: "right", fontSize: "0.8125rem", fontWeight: 700, color: "var(--blue-400)", paddingTop: "0.15rem" }}>
                   {m.year}
                 </div>
                 <div
+                  className="about-timeline-dot"
                   style={{
                     width: 14,
                     height: 14,
