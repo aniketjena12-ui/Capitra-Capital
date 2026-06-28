@@ -33,7 +33,7 @@ const sections = [
   },
   {
     title: "7. Disclaimer of Financial Advice",
-    content: `Nothing on this platform constitutes financial, investment, or trading advice. Past performance in a simulated environment does not guarantee future results. Trading financial instruments involves significant risk of loss.`,
+    content: `Nothing on this platform constitutes financial, investment, or trading advice, or any recommendation to buy or sell any security, derivative, commodity, or currency.\n\nCapitra Capital is NOT registered with the Securities and Exchange Board of India (SEBI) as a broker, investment adviser, research analyst, or any other SEBI-regulated intermediary under the Securities and Exchange Board of India Act, 1992, the SEBI (Investment Advisers) Regulations 2013, or the SEBI (Research Analysts) Regulations 2014.\n\nPast performance in a simulated environment does not guarantee future results. Trading financial instruments involves significant risk of loss. Participants are advised to seek independent financial advice before making any investment decisions.`,
   },
   {
     title: "8. Limitation of Liability",
@@ -41,7 +41,7 @@ const sections = [
   },
   {
     title: "9. Governing Law",
-    content: `These Terms are governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of the courts of [City], India.`,
+    content: `These Terms are governed by the laws of the Republic of India. Any disputes, claims, or controversies arising out of or relating to these Terms or your use of Capitra Capital's platform shall be subject to the exclusive jurisdiction of the courts of competent jurisdiction in India.`,
   },
   {
     title: "10. Modifications",
@@ -74,8 +74,43 @@ export default function TermsPage() {
           }}
         >
           ⚠️ <strong style={{ color: "var(--text-1)" }}>Important:</strong> Capitra Capital operates a{" "}
-          <strong>simulated trading environment</strong>. Challenge fees are real. The capital allocated is
-          virtual. This platform is not a brokerage and is not regulated by SEBI or any financial authority.
+          <strong>simulated trading environment</strong>. Challenge fees are real service fees — not deposits or
+          investments. This platform is not a brokerage and is not registered with SEBI, RBI, or any financial authority.
+        </div>
+
+        {/* Cross-link to full disclaimer */}
+        <div
+          className="card"
+          style={{
+            marginBottom: "1.5rem",
+            padding: "1rem 1.5rem",
+            background: "rgba(59,130,246,0.06)",
+            border: "1px solid rgba(59,130,246,0.2)",
+            fontSize: "0.8125rem",
+            color: "var(--text-2)",
+            lineHeight: 1.65,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: "0.75rem",
+          }}
+        >
+          <span>
+            📋 <strong style={{ color: "var(--text-1)" }}>Regulatory Disclaimer:</strong> For full information on SEBI, RBI,
+            Income Tax, DPDP Act, grievance redressal, and other Indian regulatory disclosures —
+          </span>
+          <Link
+            href="/disclaimer"
+            style={{
+              color: "var(--blue-400)",
+              textDecoration: "none",
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+            }}
+          >
+            Read Full Disclaimer →
+          </Link>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>

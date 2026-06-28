@@ -88,7 +88,7 @@ interface ActiveAccount {
   status: string;
 }
 
-export default function WebTraderPage() {
+export default function CapitradePage() {
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -517,7 +517,7 @@ export default function WebTraderPage() {
   }
 
   return (
-    <DashboardLayout title="Capitra WebTrader" subtitle="Groww &amp; Angel One brokerage-style workspace">
+    <DashboardLayout title="Capitrade" subtitle="The smart, simple trading workspace">
       
       {/* Account Info bar */}
       <div 

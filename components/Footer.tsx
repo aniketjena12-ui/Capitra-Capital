@@ -15,6 +15,7 @@ const footerLinks = {
   Legal: [
     { href: "/terms", label: "Terms of Service" },
     { href: "/privacy", label: "Privacy Policy" },
+    { href: "/disclaimer", label: "Disclaimer" },
     { href: "/rules", label: "Risk Disclaimer" },
   ],
 };
@@ -137,8 +138,8 @@ export default function Footer() {
             <p style={{ fontSize: "0.75rem", color: "var(--text-3)" }}>
               © {new Date().getFullYear()} Capitra Capital. All rights reserved.
             </p>
-            <p style={{ fontSize: "0.6875rem", color: "var(--text-3)", maxWidth: 520, textAlign: "right" }}>
-              ⚠️ Simulated trading environment. Challenge fees are real. Capital is virtual. Not investment advice. Trading involves risk.
+            <p style={{ fontSize: "0.6875rem", color: "var(--text-3)", maxWidth: 560, textAlign: "right" }}>
+              ⚠️ Simulated environment. Fees are service charges — not deposits or investments. Not SEBI/RBI regulated. Past simulated performance ≠ future results.
             </p>
           </div>
         </div>

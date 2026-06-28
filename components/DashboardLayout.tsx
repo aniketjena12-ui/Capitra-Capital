@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react";
 
 const sidebarNav = [
   { href: "/dashboard",          icon: "📊", label: "Overview"   },
-  { href: "/dashboard/trade",    icon: "📈", label: "WebTrader"  },
+  { href: "/dashboard/trade",    icon: "📈", label: "Capitrade"  },
   { href: "/dashboard/journal",  icon: "📋", label: "Journal"    },
   { href: "/dashboard/payouts",  icon: "💸", label: "Payouts"    },
   { href: "/dashboard/kyc",      icon: "🪪", label: "KYC"        },
@@ -23,7 +23,7 @@ const quickLinks = [
 // Bottom nav shown on mobile — 5 key items
 const mobileNav = [
   { href: "/dashboard",          icon: "📊", label: "Overview"  },
-  { href: "/dashboard/trade",    icon: "📈", label: "Trade"     },
+  { href: "/dashboard/trade",    icon: "📈", label: "Capitrade" },
   { href: "/dashboard/journal",  icon: "📋", label: "Journal"   },
   { href: "/dashboard/payouts",  icon: "💸", label: "Payouts"   },
   { href: "/dashboard/kyc",      icon: "🪪", label: "KYC"       },
